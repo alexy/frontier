@@ -1,0 +1,6 @@
+.pom.yml
+bdb
+*.aux
+*.dvi
+*.log
+target*
