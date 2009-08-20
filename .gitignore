@@ -4,3 +4,4 @@ bdb
 *.dvi
 *.log
 target*
+.DS_Store
