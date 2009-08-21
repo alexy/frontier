@@ -57,7 +57,8 @@ build:
         jvmArgs: [ -Xmx128m, -Xss2m, -Dfile.encoding=UTF-8 ]
         excludes: [ "**/drafts/*.*" ]
         launchers:
-          - { mainClass: com.tfitter.sips.InterestingPhrases, id: s1 }
+          - { mainClass: com.tfitter.sips.InterestingPhrases, id: sips }
+          - { mainClass: com.tfitter.corpus.TopNGrams, id: ngrams }
     - artifactId: maven-yamlpom-plugin
       version: 0.4.1
       executions:
