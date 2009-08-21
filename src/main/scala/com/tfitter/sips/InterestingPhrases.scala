@@ -32,6 +32,8 @@ object Sips extends optional.Application {
     topGram: Option[Int],
     minCount: Option[Int],
     top: Option[Int],
+    lowerCase: Option[Boolean],
+    caps: Option[Boolean],
     showOften: Option[Long],
     args: Array[String]) = {
       
@@ -48,6 +50,8 @@ object Sips extends optional.Application {
     val topGram_ = topGram getOrElse MAX_NGRAM_REPORTING_LENGTH
     val minCount_ = minCount getOrElse MIN_COUNT
     val top_ = top getOrElse MAX_COUNT
+    val lowerCase_ = !lowerCase.isEmpty
+    val caps_ = !caps.isEmpty
     
     val nGramCount = NGramCount(topGram_,top_)
 
@@ -77,7 +81,7 @@ object Sips extends optional.Application {
     }
     
 	  err.println("Training background model")
-    val tf: TokenizerFactory = LM.twitTokenizerFactory
+    val tf: TokenizerFactory = LM.twitTokenizerFactory(lowerCase_)
     val backgroundModel = new TokenizedLM(tf,gram_)
 
     maxTwits match {
@@ -96,7 +100,7 @@ object Sips extends optional.Application {
                                        minCount_,top_).toList
 
     println("\nCollocations in Order of Significance:")
-    report(coll)
+    report(coll,caps_)
 
     err.println("Training foreground model")
     val foregroundModel = new TokenizedLM(tf,gram_)
@@ -110,27 +114,25 @@ object Sips extends optional.Application {
 			       backgroundModel).toList
 
     err.println("\nNew Terms in Order of Signficance:")
-    report(newTerms)
+    report(newTerms,caps_)
 	
     err.println("\nDone.")
   }
 
-  def report(nGrams: ScoredStrings): Unit = {
+  def report(nGrams: ScoredStrings, caps: Boolean): Unit = {
     nGrams foreach { nGram =>
 	    val score: Double = nGram.score
 	    val toks: List[String] = nGram.getObject.toList
-	    // TODO optionalize filtering by capWord or some such:
-	    // report_filter(score,toks)
-      report_all(score,toks)
+	    if (caps) report_caps(score,toks)
+      else report_all(score,toks)
     }
   }
   
   def report_all(score: Double, toks: List[String]) = 
     println("Score: %5.3e with : %s" format (score, toks.mkString(" ")))
     
-  def report_filter(score: Double, toks: List[String]) /* :Unit */ {
-    if (toks forall capWord)
-	    println("Score: %5.3e with : %s" format (score, toks.mkString(" ")))
+  def report_caps(score: Double, toks: List[String]) /* :Unit */ {
+    if (toks forall capWord) report_all(score, toks)
 	  else ()
   }
 

@@ -131,7 +131,11 @@
                     <launchers>
                         <launcher>
                             <mainClass>com.tfitter.sips.InterestingPhrases</mainClass>
-                            <id>s1</id>
+                            <id>sips</id>
+                        </launcher>
+                        <launcher>
+                            <mainClass>com.tfitter.corpus.TopNGrams</mainClass>
+                            <id>ngrams</id>
                         </launcher>
                     </launchers>
                 </configuration>

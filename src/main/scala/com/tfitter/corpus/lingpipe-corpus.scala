@@ -78,7 +78,7 @@ class TwitterCorpus(bdbArgs: BdbArgs) extends Corpus[TokenizedLM] {
   val tdb: TwitterDB = new TwitterBDB(bdbArgs)
 }
 
-object Pipe extends optional.Application {
+object TopNGrams extends optional.Application {
 
   def main(
     envName: Option[String],
@@ -91,12 +91,14 @@ object Pipe extends optional.Application {
     noSync: Option[Boolean],
     maxTwits: Option[Int],
     showProgress: Option[Int],
+    lowerCase: Option[Boolean],
     gram: Option[Int],
     topGram: Option[Int],
     top: Option[Int],
     showOften: Option[Long],
     args: Array[String]) = {
 
+    val lowerCase_ = !lowerCase.isEmpty
     val gram_ = gram getOrElse 2
     val topGram_ = topGram getOrElse 2
     val top_ = top getOrElse 20
@@ -125,7 +127,7 @@ object Pipe extends optional.Application {
       case Some(often) => Some(ShowTopNGrams(often,NGramCount(topGram_,top_)))
       case _ => None
     }
-    val tf: TokenizerFactory = LM.twitTokenizerFactory
+    val tf: TokenizerFactory = LM.twitTokenizerFactory(lowerCase_)
     val lm = new TokenizedLM(tf,gram_)
 
     maxTwits match {
@@ -150,10 +152,10 @@ object LM {
     }
   }
 
-  def twitTokenizerFactory: TokenizerFactory = {
+  def twitTokenizerFactory(lowerCase: Boolean): TokenizerFactory = {
       var factory = IndoEuropeanTokenizerFactory.INSTANCE
       factory = new RegExFilteredTokenizerFactory(factory,Pattern.compile("\\p{Alpha}+"))
-      factory = new LowerCaseTokenizerFactory(factory)
+      if (lowerCase) factory = new LowerCaseTokenizerFactory(factory)
       factory = new EnglishStopTokenizerFactory(factory)
       factory
   }
