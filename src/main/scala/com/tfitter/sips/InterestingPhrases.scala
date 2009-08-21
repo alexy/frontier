@@ -95,18 +95,26 @@ object Sips extends optional.Application {
 	  backgroundModel.sequenceCounter.prune(PRUNE_COUNT)
 
     err.println("\nAssembling collocations in Training")
-    val coll: ScoredStrings
+    val bgColls: ScoredStrings
       = backgroundModel.collocationSet(topGram_,
                                        minCount_,top_).toList
 
-    println("\nCollocations in Order of Significance:")
-    report(coll,caps_)
+    println("\nBackground Collocations in Order of Significance:")
+    report(bgColls,caps_)
 
     err.println("Training foreground model")
     val foregroundModel = new TokenizedLM(tf,gram_)
     twitCorpus.visitUsersLm(comm1, foregroundModel)
     foregroundModel.sequenceCounter.prune(PRUNE_COUNT)
 
+    err.println("\nAssembling collocations in Test")
+    val fgColls: ScoredStrings
+      = foregroundModel.collocationSet(topGram_,
+                                       minCount_,top_).toList
+
+    println("\nForeground Collocations in Order of Significance:")
+    report(fgColls,caps_)
+    
     err.println("\nAssembling New Terms in Test vs. Training")
     val newTerms 
       = foregroundModel.newTermSet(topGram_,
