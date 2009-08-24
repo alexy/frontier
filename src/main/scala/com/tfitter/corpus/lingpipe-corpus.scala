@@ -28,21 +28,22 @@ class TwitterCorpus(bdbArgs: BdbArgs) extends Corpus[TokenizedLM] {
   override def visitTest(lm: TokenizedLM): Unit = {}
 
   // Iterator.take(Int) -- not Long, unacceptable generally!
-  private var maxTwits: Option[Int] = None
-  def setMaxTwits(m: Int): Unit = maxTwits = Some(m)
+  private var maxTwits: Option[Long] = None
+  def setMaxTwits(m: Long): Unit = maxTwits = Some(m)
   def unsetMaxTwits: Unit = maxTwits = None
 
-  private var twitsProgress: Option[Int] = None
-  def setTwitsProgress(m: Int): Unit = twitsProgress = Some(m)
+  private var twitsProgress: Option[Long] = None
+  def setTwitsProgress(m: Long): Unit = twitsProgress = Some(m)
   def unsetTwitsProgress: Unit = twitsProgress = None
 
   var showNGrams: Option[ShowTopNGrams] = None
 
   def visitLm(twits: Iterator[Twit])(lm: TokenizedLM): Unit = {
-    // val twitsToGo = maxTwits match {
-    //       case Some(m) => twits.take(m)
-    //       case _ => twits
-    //     }
+    val twitsToGo = maxTwits match {
+          // m.toInt for stdlib sillily takes Int, not Long!
+          case Some(m) => twits.take(m.toInt)
+          case _ => twits
+        }
     if (twits.hasNext) err.println("got twits") // twitsToGo.hasNext
     // get the total here as it's "remaining"!
     var twitCount: Long = 0
@@ -68,7 +69,8 @@ class TwitterCorpus(bdbArgs: BdbArgs) extends Corpus[TokenizedLM] {
   // need to override visitTrain, should be def not val:
   // val visitTrain = visitAll _
   override def visitTrain(lm: TokenizedLM): Unit = visitAll(lm)
-  def visitTake(atMost: Int)(lm: TokenizedLM) = visitLm(tdb.allTwits.take(atMost))(lm)
+  // until stdlib Iterator's take's param is Int, not Long, have to toInt!
+  def visitTake(atMost: Long)(lm: TokenizedLM) = visitLm(tdb.allTwits.take(atMost.toInt))(lm)
   
   def visitUsersLm(users: List[UserID], lm: TokenizedLM) = 
     users foreach { uid =>
@@ -89,8 +91,8 @@ object TopNGrams extends optional.Application {
     transactional: Option[Boolean],
     deferredWrite: Option[Boolean],
     noSync: Option[Boolean],
-    maxTwits: Option[Int],
-    showProgress: Option[Int],
+    maxTwits: Option[Long],
+    showProgress: Option[Long],
     lowerCase: Option[Boolean],
     gram: Option[Int],
     topGram: Option[Int],
@@ -122,7 +124,7 @@ object TopNGrams extends optional.Application {
 
     val twitCorpus = new TwitterCorpus(bdbArgs)
     if (!showProgress.isEmpty) twitCorpus.setTwitsProgress(showProgress.get)
-    twitCorpus.setMaxTwits(maxTwits getOrElse 100)
+    // twitCorpus.setMaxTwits(maxTwits getOrElse 100)
     twitCorpus.showNGrams = showOften match {
       case Some(often) => Some(ShowTopNGrams(often,NGramCount(topGram_,top_)))
       case _ => None

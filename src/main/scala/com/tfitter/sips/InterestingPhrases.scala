@@ -4,6 +4,7 @@ import System.err
 // import com.tfitter.corpus.{TwitterCorpus,LM}
 import com.tfitter.db.types._
 import org.suffix.util.bdb.{BdbFlags, BdbArgs}
+import com.tfitter.db.graph.Communities.UserList
 
 import com.aliasi.tokenizer.{IndoEuropeanTokenizerFactory,TokenizerFactory}
 import com.aliasi.lm.TokenizedLM
@@ -14,10 +15,24 @@ import java.io.{File,IOException}
 import java.util.SortedSet
 import scala.collection.jcl.Conversions._
 
-object Sips extends optional.Application {  
-  type ScoredStrings = List[ScoredObject[Array[String]]]
+case class SipParams (
+  skipBack: Boolean,
+  maxTwits: Option[Long],
+  gram: Int,
+  topGram: Int,
+  top: Int,
+  minCount: Int,
+  pruneCount: Int,
+  pruneOften: Option[Long],
+  lowerCase: Boolean,
+  caps: Boolean,
+  showProgress: Option[Long],
+  showOften: Option[Long]
+)
 
-  def main(
+object Sips extends optional.Application {  
+
+  def main (
     envName: Option[String],
     storeName: Option[String],
     cacheSize: Option[Double],
@@ -26,19 +41,20 @@ object Sips extends optional.Application {
     transactional: Option[Boolean],
     deferredWrite: Option[Boolean],
     noSync: Option[Boolean],
-    maxTwits: Option[Int],
-    showProgress: Option[Int],
+    skipBack: Option[Boolean],
+    maxTwits: Option[Long],
+    showProgress: Option[Long],
     gram: Option[Int],
     topGram: Option[Int],
     minCount: Option[Int],
     top: Option[Int],
+    pruneCount: Option[Int],
+    pruneOften: Option[Long],
     lowerCase: Option[Boolean],
     caps: Option[Boolean],
     showOften: Option[Long],
     args: Array[String]) = {
       
-    val comm1: List[UserID] = List(26329449,19032533,30931850,20798965,21779151,33616457,30259793,29667795,35202624,24393120,57118574,28838048,31437806,25355601,24761719,48897762,25688017,28361333,22382695,18877267,14803701,14742479)
-
     val NGRAM = 3
     val MIN_COUNT = 5
     val MAX_NGRAM_REPORTING_LENGTH = 2
@@ -46,15 +62,32 @@ object Sips extends optional.Application {
     val MAX_COUNT = 100
     val PRUNE_COUNT = 3
 
+    val skipBack_ = skipBack getOrElse false
     val gram_ = gram getOrElse NGRAM
     val topGram_ = topGram getOrElse MAX_NGRAM_REPORTING_LENGTH
-    val minCount_ = minCount getOrElse MIN_COUNT
     val top_ = top getOrElse MAX_COUNT
+    val minCount_ = minCount getOrElse MIN_COUNT
+    val pruneCount_ = pruneCount getOrElse PRUNE_COUNT
     val lowerCase_ = !lowerCase.isEmpty
     val caps_ = !caps.isEmpty
     
-    val nGramCount = NGramCount(topGram_,top_)
-
+    // TODO specify showProgress as 1/10 of maxTwits
+    
+    val sipParams = SipParams(
+      skipBack_,
+      maxTwits, // direct Option
+      gram_,
+      topGram_,
+      top_,
+      minCount_,
+      pruneCount_,
+      pruneOften, // direct Option
+      lowerCase_,
+      caps_,
+      showProgress, // direct Option
+      showOften // direct Option
+      )
+    
     val bdbEnvPath   = envName getOrElse "bdb"
     val bdbStoreName = storeName getOrElse "twitter"
 
@@ -73,61 +106,83 @@ object Sips extends optional.Application {
 
     val twitCorpus = new TwitterCorpus(bdbArgs)
     
-    if (!showProgress.isEmpty) twitCorpus.setTwitsProgress(showProgress.get)
+    val cs = new ComSips(twitCorpus, sipParams)
+
+    val com1: UserList = List(26329449,19032533,30931850,20798965,21779151,33616457,30259793,29667795,35202624,24393120,57118574,28838048,31437806,25355601,24761719,48897762,25688017,28361333,22382695,18877267,14803701,14742479)
+   
+    cs.comSips(com1)
+  }
+}
+
+class ComSips(twitCorpus: TwitterCorpus, sp: SipParams) {
+    type ScoredStrings = List[ScoredObject[Array[String]]]
+  
+    val nGramCount = NGramCount(sp.topGram,sp.top)
+  
+    if (!sp.showProgress.isEmpty) twitCorpus.setTwitsProgress(sp.showProgress.get)
     // twitCorpus.setMaxTwits(maxTwits getOrElse 1000000)
-    twitCorpus.showNGrams = showOften match {
-      case Some(often) => Some(ShowTopNGrams(often,NGramCount(topGram_,top_)))
+    twitCorpus.showNGrams = sp.showOften match {
+      case Some(often) => Some(ShowTopNGrams(often,NGramCount(sp.topGram,sp.top)))
       case _ => None
     }
     
-	  err.println("Training background model")
-    val tf: TokenizerFactory = LM.twitTokenizerFactory(lowerCase_)
-    val backgroundModel = new TokenizedLM(tf,gram_)
-
-    maxTwits match {
-      case Some(atMost) =>
-        err.println("doing at most "+atMost+" tweets")
-        twitCorpus.visitTake(atMost)(backgroundModel)
-      case _ => twitCorpus.visitAll(backgroundModel)
-    }
-
-    // can do every pruneChunk twits 
-	  backgroundModel.sequenceCounter.prune(PRUNE_COUNT)
-
-    err.println("\nAssembling collocations in Training")
-    val bgColls: ScoredStrings
-      = backgroundModel.collocationSet(topGram_,
-                                       minCount_,top_).toList
-
-    println("\nBackground Collocations in Order of Significance:")
-    report(bgColls,caps_)
-
-    err.println("Training foreground model")
-    val foregroundModel = new TokenizedLM(tf,gram_)
-    twitCorpus.visitUsersLm(comm1, foregroundModel)
-    foregroundModel.sequenceCounter.prune(PRUNE_COUNT)
-
-    err.println("\nAssembling collocations in Test")
-    val fgColls: ScoredStrings
-      = foregroundModel.collocationSet(topGram_,
-                                       minCount_,top_).toList
-
-    println("\nForeground Collocations in Order of Significance:")
-    report(fgColls,caps_)
+    val tf: TokenizerFactory = LM.twitTokenizerFactory(sp.lowerCase)
+  
+    val bgOpt: Option[TokenizedLM] = 
+    if (sp.skipBack) None 
+    else {
+    	err.println("Training background model")
+      val backgroundModel = new TokenizedLM(tf,sp.gram)
     
-    err.println("\nAssembling New Terms in Test vs. Training")
-    val newTerms 
-      = foregroundModel.newTermSet(topGram_,
-			       minCount_, top_,
-			       backgroundModel).toList
+      sp.maxTwits match {
+        case Some(atMost) =>
+          err.println("doing at most "+atMost+" tweets")
+          twitCorpus.visitTake(atMost)(backgroundModel)
+        case _ => twitCorpus.visitAll(backgroundModel)
+      }
 
-    err.println("\nNew Terms in Order of Signficance:")
-    report(newTerms,caps_)
-	
-    err.println("\nDone.")
-  }
+      // can do every pruneChunk twits 
+  	  backgroundModel.sequenceCounter.prune(sp.pruneCount)
 
-  def report(nGrams: ScoredStrings, caps: Boolean): Unit = {
+      err.println("\nAssembling collocations in Training")
+      val bgColls: ScoredStrings
+        = backgroundModel.collocationSet(sp.topGram,
+                                         sp.minCount,sp.top).toList
+
+      println("\nBackground Collocations in Order of Significance:")
+      report(bgColls,sp.caps)
+      Some(backgroundModel)
+    }
+  
+    def comSips(com: UserList) = {
+      err.println("Training foreground model")
+      val foregroundModel = new TokenizedLM(tf,sp.gram)
+      twitCorpus.visitUsersLm(com, foregroundModel)
+      foregroundModel.sequenceCounter.prune(sp.pruneCount)
+
+      err.println("\nAssembling collocations in Test")
+      val fgColls: ScoredStrings
+        = foregroundModel.collocationSet(sp.topGram,
+                                         sp.minCount,sp.top).toList
+
+      println("\nForeground Collocations in Order of Significance:")
+      report(fgColls,sp.caps)
+    
+      bgOpt match {
+        case Some(bg) =>
+          err.println("\nAssembling New Terms in Test vs. Training")
+          val newTerms 
+            = foregroundModel.newTermSet(sp.topGram,
+      			       sp.minCount, sp.top,
+      			       bg).toList
+          err.println("\nNew Terms in Order of Signficance:")
+          report(newTerms,sp.caps)
+          err.println("\nDone.")
+        case None =>
+      }
+    }
+  
+    def report(nGrams: ScoredStrings, caps: Boolean): Unit = {
     nGrams foreach { nGram =>
 	    val score: Double = nGram.score
 	    val toks: List[String] = nGram.getObject.toList
@@ -149,5 +204,5 @@ object Sips extends optional.Application {
     case _ => false
   }
 
-  def capWord1(s: String) = !s.isEmpty && s.first.isUpperCase && (s.drop(1) forall (_.isLowerCase))
+  // def capWord1(s: String) = !s.isEmpty && s.first.isUpperCase && (s.drop(1) forall (_.isLowerCase))
 }
