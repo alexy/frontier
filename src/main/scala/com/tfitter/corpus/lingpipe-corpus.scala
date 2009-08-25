@@ -39,28 +39,42 @@ class TwitterCorpus(bdbArgs: BdbArgs, debug: Boolean) extends Corpus[TokenizedLM
   def unsetTwitsProgress: Unit = twitsProgress = None
 
   var showNGrams: Option[ShowTopNGrams] = None
+  
+  var pruneCount: Option[Int] = None
+  var pruneOften: Option[Long] = None
 
   def visitLm(twits: Iterator[Twit])(lm: TokenizedLM): Unit = {
     val twitsToGo = maxTwits match {
           // m.toInt for stdlib sillily takes Int, not Long!
-          case Some(m) => twits.take(m.toInt)
+          case Some(m) => 
+            err.println("# respecting corpus maxTwits cutoff set at "+m)
+            twits.take(m.toInt)
           case _ => twits
         }
-    if (twits.hasNext) dinfo("got twits") // twitsToGo.hasNext
+    if (twitsToGo.hasNext) dinfo("got twits")
     // get the total here as it's "remaining"!
     var twitCount: Long = 0
     var dumpCount: Int  = 0
-    for (t <- twits) { // t <- twitsToGo
+    for (t <- twitsToGo) { // t <- twitsToGo
       // err.println(totalTwits+": "+t.text)
       // TODO lm.train is same as lm.handle?
       lm.train(t.text.toCharArray,0,t.text.length)
       twitCount += 1
       if (!twitsProgress.isEmpty && twitCount % twitsProgress.get == 0) err.print(".")
+      // TODO show before or after pruning?
       showNGrams match {
         case Some(x) if (twitCount % x.often == 0) =>
           dumpCount += 1
           err.println("#"+dumpCount+" intermediate dump of "+LM.showNGramCount(x.nGramCount))
           LM.showTopNGrams(lm,x.nGramCount)
+        case _ =>
+      }
+      pruneOften match {
+        case Some(often) if (!pruneCount.isEmpty && twitCount % often == 0) =>
+          val minCount = pruneCount.get
+          dinfo("pruning lm after "+twitCount+" twits at mincount "+"; before: "+lm.sequenceCounter.trieSize+" ngrams, after: ")
+          lm.sequenceCounter.prune(minCount)
+          dinfo(lm.sequenceCounter.trieSize)
         case _ =>
       }
     }
@@ -94,6 +108,8 @@ object TopNGrams extends optional.Application {
     deferredWrite: Option[Boolean],
     noSync: Option[Boolean],
     maxTwits: Option[Long],
+    pruneCount: Option[Int],
+    pruneOften: Option[Long],
     showProgress: Option[Long],
     lowerCase: Option[Boolean],
     gram: Option[Int],
@@ -131,10 +147,14 @@ object TopNGrams extends optional.Application {
     
     if (!showProgress.isEmpty) twitCorpus.setTwitsProgress(showProgress.get)
     // twitCorpus.setMaxTwits(maxTwits getOrElse 100)
+
     twitCorpus.showNGrams = showOften match {
       case Some(often) => Some(ShowTopNGrams(often,NGramCount(topGram_,top_)))
       case _ => None
     }
+    twitCorpus.pruneCount = pruneCount
+    twitCorpus.pruneOften = pruneOften
+    
     val tf: TokenizerFactory = LM.twitTokenizerFactory(lowerCase_)
     val lm = new TokenizedLM(tf,gram_)
 
