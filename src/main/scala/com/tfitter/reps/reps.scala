@@ -7,8 +7,8 @@ import com.tfitter.db.types._
 
 import scala.util.Sorting.stableSort
 import org.suffix.util.bdb.{BdbArgs,BdbFlags,BdbStore}
+import org.suffix.util.input.Ints
 
-import java.io.{FileReader,BufferedReader}
 
 object PairsBDB extends optional.Application {
  
@@ -70,8 +70,8 @@ object PairsBDB extends optional.Application {
     val repPairs = 
     if (!pair.isEmpty) {
       err.println("# for the pair: "+pair.get)
-      List(getPair(pair.get)) // pardon the palindrome! 
-    } else if (args(0).isEmpty) {
+      List(Ints.getPair(pair.get)) // pardon the palindrome! 
+    } else if (args.length < 1) {
       val repCooked = List[UserPair](
       (25688017,14742479),(14742479,25688017),
       (30271870,26073346),(26073346,30271870),
@@ -81,9 +81,7 @@ object PairsBDB extends optional.Application {
     } else {
       val repPairsFile = args(0)
       err.println("# reading repPairs from "+repPairsFile)
-      var bufReader = new BufferedReader(new FileReader(repPairsFile))
-       
-      readPairs(bufReader, Nil) 
+      Ints.readPairs(repPairsFile) 
     }
         
     repPairs.foreach { up: UserPair =>
@@ -117,23 +115,6 @@ object Communities {
   type FringeUser = (UserPair, TiesPair)
   type Fringe = Set[FringeUser]
   
-  def getPair(s: String): (Int, Int) = {
-    val Seq(a,b) = s.trim.split(",") map (_.toInt)
-    (a,b)
-  }
-
-  def readPairs(bufr: BufferedReader, acc: RepPairs): RepPairs = {
-    val line = bufr.readLine
-    if (line == null) {
-      bufr.close
-      acc.reverse
-    }
-    else {
-      // TODO catch matching exception here for wrong format clarification?
-      val pair = getPair(line)
-      readPairs(bufr,pair::acc)
-    } 
-  }
 }
 
 class Communities(getReps: UserID => Option[RepCount]) {
