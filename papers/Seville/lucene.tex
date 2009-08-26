@@ -15,5 +15,5 @@ We created API functions to find a stopword list over the entire corpora of twee
 \item userPairTopics - gets the top words for pairs of users
 \item getStopList - creates a stoplist from the most commonly used words in the corpora of all tweets
 \subsection{User Corpora Index API Functions}
-In addition the the API functions which interact with the full index on a per tweet basis we created API functions which operate on the per user corpora index.  These functions primarily use queries with very large numbers of terms to perform  cosine similarity analysis on the corpora of a user or a group of users against another user or group of users.
+In addition to the API functions which interact with the full index on a per tweet basis we created API functions which operate on the per user corpora index.  These functions primarily use queries with very large numbers of terms to perform cosine similarity analysis on the corpora of a user or a group of users against another user or group of users.  We use these functions to rank the fringe of a community by similarity to the users in the community.
 \end{list}
