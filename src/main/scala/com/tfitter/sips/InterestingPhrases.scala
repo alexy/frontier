@@ -1,7 +1,8 @@
 package com.tfitter.corpus
 
 import System.err
-import org.suffix.util.Info.info
+import org.suffix.util.Info
+import org.suffix.util.Info.{say,info}
 import org.suffix.util.Debug
 import org.suffix.util.input.Ints
 
@@ -74,7 +75,6 @@ object Sips extends optional.Application {
     showOften: Option[Long],
     errSips: Option[Boolean],
     users: Option[String],
-    debug: Option[Boolean],
     args: Array[String]) = {
       
     val NGRAM = 3
@@ -86,7 +86,7 @@ object Sips extends optional.Application {
 
     val skipBack_ = skipBack getOrElse false
     val gram_ = gram getOrElse NGRAM
-    val topGram_ = topGram getOrElse MAX_NGRAM_REPORTING_LENGTH
+    val topGram_ = topGram getOrElse gram_ //MAX_NGRAM_REPORTING_LENGTH
     val top_ = top getOrElse MAX_COUNT
     val minCount_ = minCount getOrElse MIN_COUNT
     val pruneCount_ = pruneCount getOrElse PRUNE_COUNT
@@ -94,7 +94,6 @@ object Sips extends optional.Application {
     val caps_ = !caps.isEmpty
     val sipsOnly_ = !skipBack_ && !sipsOnly.isEmpty
     val errSips_ = errSips getOrElse false
-    val debug_ = debug getOrElse false
     
     // TODO specify showProgress as 1/10 of maxTwits
     
@@ -112,6 +111,8 @@ object Sips extends optional.Application {
       showProgress, // direct Option
       showOften // direct Option
       )
+      
+    List('bgmodel,'maxtwits,'fg) foreach Info.set //'
     
     val bdbEnvPath   = envName getOrElse "bdb"
     val bdbStoreName = storeName getOrElse "twitter"
@@ -129,7 +130,7 @@ object Sips extends optional.Application {
     )
     val bdbArgs = BdbArgs(bdbEnvPath,bdbStoreName,bdbFlags,bdbCacheSize)
 
-    val twitCorpus = new TwitterCorpus(bdbArgs, debug_)
+    val twitCorpus = new TwitterCorpus(bdbArgs)
     
     val cs = new ComSips(twitCorpus, sipParams)
 
@@ -151,16 +152,16 @@ object Sips extends optional.Application {
     }
    
     userLists foreach { userList =>
-      info("# community:")
-      info(userList)
+      info('sipscom)("# community:") //'
+      info('sipscom)(userList) //'
       val phrases = cs.comSips(userList,errSips_)
       if (!sipsOnly_) {
-        info("# foreground collocations:")
+        println("# foreground collocations:")
         cs.report(phrases.cols,caps_)
       }
       phrases.sips match {
         case Some(sips) => 
-          info("# foreground SIPs:")
+          println("# foreground SIPs:")
           cs.report(sips,caps_)
         case _ =>
       }
@@ -184,12 +185,12 @@ class ComSips(twitCorpus: TwitterCorpus, sp: SipParams) {
     val (bgOpt, bgColsOpt) = 
       if (sp.skipBack) (None, None) 
       else {
-      	err.println("Training background model")
+      	info('bgmodel)("Training background model") //'
         val backgroundModel = new TokenizedLM(tf,sp.gram)
     
         sp.maxTwits match {
           case Some(atMost) =>
-            err.println("doing at most "+atMost+" tweets")
+            info('maxtwits)("doing at most "+atMost+" tweets") //'
             twitCorpus.visitTake(atMost)(backgroundModel)
           case _ => twitCorpus.visitAll(backgroundModel)
         }
@@ -216,24 +217,24 @@ class ComSips(twitCorpus: TwitterCorpus, sp: SipParams) {
       twitCorpus.visitUsersLm(com, foregroundModel)
       foregroundModel.sequenceCounter.prune(sp.pruneCount)
 
-      dinfo("\nAssembling collocations in Test")
+      info('fg)("\nAssembling collocations in Test") //'
       val fgColls: ScoredPhrases
         = foregroundModel.collocationSet(sp.topGram,
                                          sp.minCount,sp.top).toList
 
-      dinfo("\nForeground Collocations in Order of Significance:")
+      info('fg)("\nForeground Collocations in Order of Significance:") //'
       if (show) report(fgColls,sp.caps)
     
       val sips: Option[ScoredPhrases] = bgOpt match {
         case Some(bg) =>
-          dinfo("\nAssembling New Terms in Test vs. Training")
+          info('fg)("\nAssembling New Terms in Test vs. Training") //'
           val newTerms 
             = foregroundModel.newTermSet(sp.topGram,
       			       sp.minCount, sp.top,
       			       bg).toList
-          dinfo("\nNew Terms in Order of Signficance:")
+          info('fg)("\nNew Terms in Order of Signficance:") //'
           if (show) report(newTerms,sp.caps)
-          dinfo("\nDone.")
+          info('fg)("\nDone.") //'
           Some(newTerms)
         case _ => None
       }

@@ -22,12 +22,15 @@ object PairsBDB extends optional.Application {
     deferredWrite: Option[Boolean],
     noSync: Option[Boolean],
     showProgress: Option[Boolean],
+    sym: Option[Boolean],
     usePairs: Option[Boolean],
     csv: Option[Boolean],
     showFringe: Option[Boolean],
     pair: Option[String],
     args: Array[String]) = {
       
+    // whether we're growing symmetrical communities
+    val sym_ = sym getOrElse true
     // csv lists community members only, without edges/ties
     val csv_ = csv getOrElse false
     val showFringe_ = showFringe getOrElse false
@@ -85,7 +88,7 @@ object PairsBDB extends optional.Application {
     }
         
     repPairs.foreach { up: UserPair =>
-      val com: Community = c.triangles(up,Some(100),None)
+      val com: Community = c.triangles(up,sym_,Some(100),None)
       println("# "+up+" community:")
       println(c.showCommunity(com,csv_))
       if (showFringe_) {
@@ -108,20 +111,20 @@ object Communities {
   type TiesPair = (Tie,Tie)
   type UserPairQueue = Queue[(UserPair,Gen)]
   type UserTies = (UserID,TiesPair)
+  type UserTiesList = List[UserTies]
   type ComMember = (UserID,UserPair,TiesPair,Gen)
   type RepPairs  = List[UserPair]
   type Community = List[ComMember]
   type ComTroika = (UserPairQueue,UserSet,Community)
   type FringeUser = (UserPair, TiesPair)
-  type Fringe = Set[FringeUser]
-  
+  type Fringe = Set[FringeUser]  
 }
 
 class Communities(getReps: UserID => Option[RepCount]) {
   import scala.collection.immutable.Queue
   import Communities._
 
-  def triangles(up: UserPair,
+  def triangles(up: UserPair, sym: Boolean,
     maxTotal: Option[Int], maxGen: Option[Int]): Community = {
     val (u1,u2) = up  
       
@@ -140,6 +143,22 @@ class Communities(getReps: UserID => Option[RepCount]) {
       }
       aux(a)
     }
+    
+    
+    // TODO what's the most efficient algorithm for joining two replier lists,
+    // sorted in descendant tie strength order, by common repliers, yielding those?
+    def commonSym(a: List[RePair], b: Array[RePair], haveSet: UserSet): UserTiesList = {
+      def aux(l: List[RePair], acc: UserTiesList): UserTiesList = l match {
+        case (s,(t1,u))::xs => if (haveSet contains s) aux(xs, acc)
+        else b.find(_._1==s) match {
+          case Some((_,(t2,_))) => aux(xs,(s,(t1,t2))::acc)
+          case _ => aux(xs,acc)
+        }
+        case _ => acc.reverse
+      }
+      aux(a,Nil)
+    }
+
     
     def addPair(troika: ComTroika): (ComTroika,Boolean) = {
       val (pairs,haveSet,community) = troika
@@ -179,15 +198,56 @@ class Communities(getReps: UserID => Option[RepCount]) {
       }
     }
     
+    def addPairSym(troika: ComTroika): (ComTroika,Boolean) = {
+      val (pairs,haveSet,community) = troika
+      if (pairs.isEmpty) return (troika,false)
+      
+      val ((parents @ (u1,u2),parentGen),deQueue) = pairs.dequeue
+
+      if (!maxGen.isEmpty && parentGen >= maxGen.get)   return ((deQueue,haveSet,community),true)
+      val u1reps: RepCount = getReps(u1) getOrElse    { return ((deQueue,haveSet,community),true) }
+      val u2reps: RepCount = getReps(u2) getOrElse    { return ((deQueue,haveSet,community),true) }
+    
+      val u1a = u1reps.toList.sort(_._2._1 > _._2._1)
+      val u2a = u2reps.toArray
+      stableSort(u2a,firstGreater _)
+    
+      // the above is exactly the same as for addPair; Sym difference is below
+      
+      val cs: List[UserTies] = commonSym(u1a, u2a, haveSet)
+      if (cs.isEmpty) return ((deQueue,haveSet,community),true)
+      
+      val cGen = parentGen + 1
+      
+      val resTroika = cs.foldLeft ((deQueue,haveSet,community)) { case ((q,set,com),(x,ties)) => 
+         (q enqueue (com map { case (y,_,_,gen) => 
+            ((y,x),gen min cGen) }),
+          set+x,
+          (x,parents,ties,cGen)::com)
+      }
+      val keepGoing = maxTotal.isEmpty || haveSet.size < maxTotal.get
+      (resTroika,keepGoing)
+    }
+    
     def growCommunity(troika: ComTroika): Community =
       addPair(troika) match {
         case (t,true) => growCommunity(t)
         case ((_,_,com),_) => com.reverse
       }
     
+    def growCommunitySym(troika: ComTroika): Community =
+      addPairSym(troika) match {
+        case (t,true) => growCommunity(t)
+        case ((_,_,com),_) => com.reverse
+      }
+
     // body!
     val pq: UserPairQueue = Queue.Empty.enqueue(((u1,u2),0))
-    growCommunity( ( pq, Set(u1,u2), List[ComMember]((u1,(0,0),(0,0),0),(u2,(0,0),(0,0),0)) ) )
+    val set = Set(u1,u2)
+    val com = List[ComMember]((u1,(0,0),(0,0),0),(u2,(0,0),(0,0),0)) 
+    
+    if (sym) growCommunitySym( (pq,set,com) )
+    else growCommunity( (pq,set,com) )
   }
 
 

@@ -10,7 +10,8 @@ import com.aliasi.lm.TokenizedLM
 import com.tfitter.db.{Twit, TwitterDB, TwitterBDB, TwIterator}
 import com.tfitter.db.types._
 import org.suffix.util.bdb.{BdbFlags, BdbArgs}
-import org.suffix.util.Debug
+import org.suffix.util.Info
+import org.suffix.util.Info.info
 
 // java.util.SortedSet.toList
 import scala.collection.jcl.Conversions._
@@ -25,8 +26,8 @@ case class ShowTopNGrams (
   nGramCount: NGramCount
 )
 
-class TwitterCorpus(bdbArgs: BdbArgs, debug: Boolean) extends Corpus[TokenizedLM] {
-  val dinfo = Debug.println(debug)(_)
+class TwitterCorpus(bdbArgs: BdbArgs) extends Corpus[TokenizedLM] {
+  
   override def visitTest(lm: TokenizedLM): Unit = {}
 
   // Iterator.take(Int) -- not Long, unacceptable generally!
@@ -47,11 +48,11 @@ class TwitterCorpus(bdbArgs: BdbArgs, debug: Boolean) extends Corpus[TokenizedLM
     val twitsToGo = maxTwits match {
           // m.toInt for stdlib sillily takes Int, not Long!
           case Some(m) => 
-            err.println("# respecting corpus maxTwits cutoff set at "+m)
+            info('maxtwits)("# respecting corpus maxTwits cutoff set at "+m) //'
             twits.take(m.toInt)
           case _ => twits
         }
-    if (twitsToGo.hasNext) dinfo("got twits")
+    if (twitsToGo.hasNext) info('gottwits)("got twits") //'
     // get the total here as it's "remaining"!
     var twitCount: Long = 0
     var dumpCount: Int  = 0
@@ -65,20 +66,20 @@ class TwitterCorpus(bdbArgs: BdbArgs, debug: Boolean) extends Corpus[TokenizedLM
       showNGrams match {
         case Some(x) if (twitCount % x.often == 0) =>
           dumpCount += 1
-          err.println("#"+dumpCount+" intermediate dump of "+LM.showNGramCount(x.nGramCount))
+          info('dumpngrams)("#"+dumpCount+" intermediate dump of "+LM.showNGramCount(x.nGramCount)) //'
           LM.showTopNGrams(lm,x.nGramCount)
         case _ =>
       }
       pruneOften match {
         case Some(often) if (!pruneCount.isEmpty && twitCount % often == 0) =>
           val minCount = pruneCount.get
-          dinfo("pruning lm after "+twitCount+" twits at mincount "+"; before: "+lm.sequenceCounter.trieSize+" ngrams, after: ")
+          info('prune)("pruning lm after "+twitCount+" twits at mincount\n => before: "+lm.sequenceCounter.trieSize+" ngrams, after: ") //'
           lm.sequenceCounter.prune(minCount)
-          dinfo(lm.sequenceCounter.trieSize)
+          info('prune)(lm.sequenceCounter.trieSize) //'
         case _ =>
       }
     }
-    dinfo("did "+twitCount+" twits.")
+    info('twitwalk)("did "+twitCount+" twits.") //'
   }
   
   val visitAll = visitLm(tdb.allTwits)(_)
@@ -116,20 +117,32 @@ object TopNGrams extends optional.Application {
     topGram: Option[Int],
     top: Option[Int],
     showOften: Option[Long],
-    debug: Option[Boolean],
+    debugOn: Option[String],
+    debugOff: Option[String],
+    groupOn: Option[String],
+    groupOff: Option[String],
     args: Array[String]) = {
 
     val lowerCase_ = !lowerCase.isEmpty
     val gram_ = gram getOrElse 2
-    val topGram_ = topGram getOrElse 2
+    val topGram_ = topGram getOrElse gram_
     val top_ = top getOrElse 20
-    val debug_ = debug getOrElse false
 
     val nGramCount = NGramCount(topGram_,top_)
 
     val bdbEnvPath   = envName getOrElse "bdb"
     val bdbStoreName = storeName getOrElse "twitter"
-
+    
+    Info.group('G_twitwalk,List('twitwalk,'gottwits,'maxtwits))
+    val showNot = Info.getSymbols(debugOff)
+    val showOn = (debugOn match {
+      case Some(s) => Info.symbols(s)
+      case _ => List('maxtwits,'gottwits,'dumpngrams,'prune,'twitwalk)  //'
+    }) remove (showNot contains _)
+    
+    showOn foreach Info.set
+    info('info)("# showing output for symbols:"+showOn) //'
+    
     val bdbCacheSize = cacheSize match {
       case Some(x) => Some((x*1024*1024*1024).toLong)
       case _ => None // Config.bdbCacheSize
@@ -143,7 +156,7 @@ object TopNGrams extends optional.Application {
     )
     val bdbArgs = BdbArgs(bdbEnvPath,bdbStoreName,bdbFlags,bdbCacheSize)
 
-    val twitCorpus = new TwitterCorpus(bdbArgs, debug_)
+    val twitCorpus = new TwitterCorpus(bdbArgs)
     
     if (!showProgress.isEmpty) twitCorpus.setTwitsProgress(showProgress.get)
     // twitCorpus.setMaxTwits(maxTwits getOrElse 100)
