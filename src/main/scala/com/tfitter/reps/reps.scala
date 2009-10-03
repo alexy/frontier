@@ -22,11 +22,15 @@ object PairsBDB extends optional.Application {
     deferredWrite: Option[Boolean],
     noSync: Option[Boolean],
     showProgress: Option[Boolean],
+
+    useTriples: Option[Boolean], // use bdb with edges, not adjacency lists
+    csv: Option[Boolean],        // output communities with users only, in CSV form
+
+    pairs: Option[String],       // seed communities from command line
+    maxMembers: Option[Int],
+    maxGen: Option[Int],
     sym: Option[Boolean],
-    usePairs: Option[Boolean],
-    csv: Option[Boolean],
     showFringe: Option[Boolean],
-    pair: Option[String],
     args: Array[String]) = {
       
     // whether we're growing symmetrical communities
@@ -34,10 +38,10 @@ object PairsBDB extends optional.Application {
     // csv lists community members only, without edges/ties
     val csv_ = csv getOrElse false
     val showFringe_ = showFringe getOrElse false
-    val usingPairs = usePairs getOrElse false
+    val useTriples_ = useTriples getOrElse false
     
-    val bdbEnvPath   = envName getOrElse (if (usingPairs) "reps.bdb" else "urs.bdb")
-    val bdbStoreName = storeName getOrElse (if (usingPairs) "repliers" else "repmaps")
+    val bdbEnvPath   = envName   getOrElse (if (useTriples_) "reps.bdb" else "urs.bdb")
+    val bdbStoreName = storeName getOrElse (if (useTriples_) "repliers" else "repmaps")
     
     val bdbCacheSize = cacheSize match {
       case Some(x) => Some((x*1024*1024*1024).toLong)
@@ -55,8 +59,8 @@ object PairsBDB extends optional.Application {
     // make this a parameter:
     val showingProgress = showProgress getOrElse true
 
-    val udb = if (usingPairs) new RepliersBDB(bdbArgs)
-      else new RepMapsBDB(bdbArgs)
+    val udb = if (useTriples_) new RepliersBDB(bdbArgs)
+                          else new RepMapsBDB(bdbArgs)
       
     err.println("udb class: "+udb.getClass)
 
@@ -71,9 +75,9 @@ object PairsBDB extends optional.Application {
     // a different result set!
     
     val repPairs = 
-    if (!pair.isEmpty) {
-      err.println("# for the pair: "+pair.get)
-      List(Ints.getPair(pair.get)) // pardon the palindrome! 
+    if (!pairs.isEmpty) {
+      err.println("# for the pairs: "+pairs.get)
+      Ints.getPairs(pairs.get) // pardon the palindrome! 
     } else if (args.length < 1) {
       val repCooked = List[UserPair](
       (25688017,14742479),(14742479,25688017),
@@ -88,7 +92,7 @@ object PairsBDB extends optional.Application {
     }
         
     repPairs.foreach { up: UserPair =>
-      val com: Community = c.triangles(up,sym_,Some(100),None)
+      val com: Community = c.triangles(up,sym_,maxMembers,maxGen)
       println("# "+up+" community:")
       println(c.showCommunity(com,csv_))
       if (showFringe_) {

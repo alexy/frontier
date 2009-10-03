@@ -43,11 +43,18 @@ dependencies:
   - { groupId: org.suffix, artifactId: "util_${scala.version}", version: 1.0 }
   - { groupId: com.tfitter, artifactId: "tfitter_${scala.version}", version: 0.5 }
 build:
-  sourceDirectory: src/main/scala
   directory: "target-${scala.version}"
   resources:
     - { directory: resources }
   plugins:
+    - groupId: org.apache.maven.plugins
+      artifactId: maven-compiler-plugin
+      configuration:
+        source: 1.6
+        target: 1.6
+      executions:
+        - phase: compile
+          goals: [ compile ]
     - groupId: org.scala-tools
       artifactId: maven-scala-plugin
       executions:
@@ -60,12 +67,10 @@ build:
           - { mainClass: com.tfitter.sips.InterestingPhrases, id: sips }
           - { mainClass: com.tfitter.corpus.TopNGrams, id: ngrams }
     - artifactId: maven-yamlpom-plugin
-      version: 0.4.1
       executions:
         - goals: [ sync ]
       groupId: org.twdata.maven
     - artifactId: maven-assembly-plugin
-      version: 2.2-beta-4
       configuration:
         descriptorRefs: [ jar-with-dependencies ]
         archive:

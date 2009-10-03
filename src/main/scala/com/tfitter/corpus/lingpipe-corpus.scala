@@ -5,7 +5,8 @@ import java.util.regex.Pattern
 import com.aliasi.util.ScoredObject
 import System.err
 import com.aliasi.corpus.{TextHandler,Corpus}
-import com.aliasi.lm.TokenizedLM
+// braver placed TokenNGramFiles in com.alias.lm from demo
+import com.aliasi.lm.{TokenizedLM,TokenNGramFiles}
 
 import com.tfitter.db.{Twit, TwitterDB, TwitterBDB, TwIterator}
 import com.tfitter.db.types._
@@ -121,6 +122,7 @@ object TopNGrams extends optional.Application {
     debugOff: Option[String],
     groupOn: Option[String],
     groupOff: Option[String],
+    write: Option[String],
     args: Array[String]) = {
 
     val lowerCase_ = !lowerCase.isEmpty
@@ -179,8 +181,23 @@ object TopNGrams extends optional.Application {
     }
     err.println("the final dump of "+LM.showNGramCount(nGramCount))    
     LM.showTopNGrams(lm,nGramCount)
+  
+    val minWriteOrder = 0
+    val maxWriteOrder = gram_
+    val minWriteCount = 1
+    write match {
+      case Some(file) => 
+           err.println("serializing the ngram model into "+file+
+           ", minOrder="+minWriteOrder+", maxOrder="+maxWriteOrder+
+           ", minCount="+minWriteCount)
+           TokenNGramFiles.writeNGrams(lm,new java.io.File(file),
+           minWriteOrder,
+           maxWriteOrder,
+           minWriteCount,
+           "UTF-8")
+      case _ =>
+    } 
   }
-
 }
 
 object LM {

@@ -9,8 +9,9 @@ import org.suffix.util.input.Ints
 // we *are* in .corpus, Toto:
 // import com.tfitter.corpus.{TwitterCorpus,LM}
 import com.tfitter.db.types._
-import org.suffix.util.bdb.{BdbFlags, BdbArgs}
-import com.tfitter.db.graph.Communities.UserList
+import org.suffix.util.bdb.{BdbFlags,BdbArgs,BdbStore}
+import com.tfitter.db.graph.{RepMapsBDB,Communities}
+import com.tfitter.db.graph.Communities.{UserList,Community}
 
 import com.aliasi.tokenizer.{IndoEuropeanTokenizerFactory,TokenizerFactory}
 import com.aliasi.lm.TokenizedLM
@@ -52,14 +53,14 @@ case class SipParams (
 object Sips extends optional.Application {  
 
   def main (
-    envName: Option[String],
-    storeName: Option[String],
-    cacheSize: Option[Double],
-    allowCreate: Option[Boolean],
-    readOnly: Option[Boolean],
-    transactional: Option[Boolean],
-    deferredWrite: Option[Boolean],
-    noSync: Option[Boolean],
+    dataDir: Option[String],
+    twitsEnvName: Option[String],
+    twitsStoreName: Option[String],
+    twitsCacheSize: Option[Double],
+    repsEnvName: Option[String],
+    repsStoreName: Option[String],
+    repsCacheSize: Option[Double],
+    
     skipBack: Option[Boolean],
     maxTwits: Option[Long],
     pruneCount: Option[Int],
@@ -73,8 +74,14 @@ object Sips extends optional.Application {
     caps: Option[Boolean],
     sipsOnly: Option[Boolean],
     showOften: Option[Long],
-    errSips: Option[Boolean],
+    errSips: Option[Boolean], // output Sips to stderr in addition to API return
     users: Option[String],
+    
+    pairs: Option[String],
+    csv: Option[Boolean],
+    maxMembers: Option[Int],
+    maxGen: Option[Int],
+    asym: Option[Boolean], // asymmetric communities    
     args: Array[String]) = {
       
     val NGRAM = 3
@@ -94,6 +101,7 @@ object Sips extends optional.Application {
     val caps_ = !caps.isEmpty
     val sipsOnly_ = !skipBack_ && !sipsOnly.isEmpty
     val errSips_ = errSips getOrElse false
+    val asym_ = asym getOrElse false
     
     // TODO specify showProgress as 1/10 of maxTwits
     
@@ -114,30 +122,46 @@ object Sips extends optional.Application {
       
     List('bgmodel,'maxtwits,'fg) foreach Info.set //'
     
-    val bdbEnvPath   = envName getOrElse "bdb"
-    val bdbStoreName = storeName getOrElse "twitter"
+    val twitsBdbEnvPath   = twitsEnvName   getOrElse "twits.bdb"
+    val twitsBdbStoreName = twitsStoreName getOrElse "twitter"
+    val twitsBdbCacheSize = BdbStore.cacheSizeBytesOpt(twitsCacheSize)
 
-    val bdbCacheSize = cacheSize match {
-      case Some(x) => Some((x*1024*1024*1024).toLong)
-      case _ => None // Config.bdbCacheSize
-    }
-    val bdbFlags = BdbFlags(
-      allowCreate   getOrElse false,
-      readOnly      getOrElse true,
-      transactional getOrElse false,
-      deferredWrite getOrElse false,
-      noSync        getOrElse false
+    val bdbReadFlags = BdbFlags(
+      /* allowCreate */    false,
+      /* readOnly */       true,
+      /* transactional */  false,
+      /* deferredWrite */  false,
+      /* noSync */         false
     )
-    val bdbArgs = BdbArgs(bdbEnvPath,bdbStoreName,bdbFlags,bdbCacheSize)
-
-    val twitCorpus = new TwitterCorpus(bdbArgs)
     
+    val twitsBdbArgs = BdbArgs(twitsBdbEnvPath,twitsBdbStoreName,bdbReadFlags,twitsBdbCacheSize)
+    val twitCorpus = new TwitterCorpus(twitsBdbArgs)
     val cs = new ComSips(twitCorpus, sipParams)
+    
+    // grow communities from seeding pairs, if requested
+    val bdbDataDir = dataDir getOrElse "" // Config.bdbDataDir
+    val growComs = !pairs.isEmpty
+    
+    // TODO use file-system-dependent path concat:
+    val repsBdbEnvPath   = repsEnvName   getOrElse (bdbDataDir + "urs.bdb")
+    val repsBdbStoreName = repsStoreName getOrElse "repmaps"   
+    val repsBdbCacheSize = BdbStore.cacheSizeBytesOpt(repsCacheSize)
+    
+    val repsBdbArgs = BdbArgs(repsBdbEnvPath,repsBdbStoreName,bdbReadFlags,repsBdbCacheSize)
+    val udb = new RepMapsBDB(repsBdbArgs)
+    val coms = new Communities(udb.getReps _)
+
 
     val userLists: List[UserList] =
     if (!users.isEmpty) {
       err.println("# for user list: "+users.get)
       List(Ints.getList(users.get))
+    } else if (!pairs.isEmpty) {
+      val pairs_ = Ints.getPairs(pairs.get)
+      pairs_ map { pair =>
+        val com: Community = coms.triangles(pair,!asym_,maxMembers,maxGen)
+        com map { _._1 }
+        }
     } else if (args.length < 1) {
       List[UserList](List(
           26329449,19032533,30931850,20798965,21779151,

@@ -5,3 +5,10 @@ bdb
 *.log
 target*
 .DS_Store
+*.iml
+*.ipr
+*.iws
+data
+meat
+zhar
+*.bdb
