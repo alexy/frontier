@@ -246,6 +246,7 @@ object ReadNGrams extends optional.Application {
         val lm = new TokenizedLM(tokenizerFactory, gram_)
         
         TokenNGramFiles.addNGrams(new File(ngrams),"UTF-8",lm,0)
+        err.println("finished reading back the model, finding "+ top_ +" top "+ topGram_ +"-grams...")
         LM.showTopNGrams(lm,nGramCount)
   }
 }
