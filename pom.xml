@@ -128,31 +128,31 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <args>
-                        <arg>-deprecation</arg>
-                        <arg>-unchecked</arg>
-                        <arg>-optimise</arg>
-                        <arg>-Ynojline</arg>
+					<args>
+                      <arg>-deprecation</arg>
+                      <arg>-unchecked</arg>
+                      <arg>-optimise</arg>
+                      <arg>-Ynojline</arg>
                     </args>
                     <jvmArgs>
-                        <jvmArg>-Xmx128m</jvmArg>
-                        <jvmArg>-Xss2m</jvmArg>
-                        <jvmArg>-Dfile.encoding=UTF-8</jvmArg>
+                      <jvmArg>-Xmx128m</jvmArg>
+                      <jvmArg>-Xss2m</jvmArg>
+                      <jvmArg>-Dfile.encoding=UTF-8</jvmArg>
                     </jvmArgs>
                     <excludes>
-                        <exclude>**/drafts/*.*</exclude>
+                      <exclude>**/drafts/*.*</exclude>
                     </excludes>
                     <launchers>
-                        <launcher>
-                            <mainClass>com.tfitter.sips.InterestingPhrases</mainClass>
-                            <id>sips</id>
-                        </launcher>
-                        <launcher>
-                            <mainClass>com.tfitter.corpus.TopNGrams</mainClass>
-                            <id>ngrams</id>
-                        </launcher>
+                      <launcher>
+                          <mainClass>com.tfitter.sips.InterestingPhrases</mainClass>
+                          <id>sips</id>
+                      </launcher>
+                      <launcher>
+                          <mainClass>com.tfitter.corpus.TopNGrams</mainClass>
+                          <id>ngrams</id>
+                      </launcher>
                     </launchers>
-                </configuration>
+                ]]></configuration>
             </plugin>
             <plugin>
                 <artifactId>maven-yamlpom-plugin</artifactId>
