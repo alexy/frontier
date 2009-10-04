@@ -152,7 +152,7 @@
                           <id>ngrams</id>
                       </launcher>
                     </launchers>
-                ]]></configuration>
+                </configuration>
             </plugin>
             <plugin>
                 <artifactId>maven-yamlpom-plugin</artifactId>
