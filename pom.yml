@@ -21,7 +21,9 @@ profiles:
     properties:
       scala.version: 2.8.0-SNAPSHOT
 repositories:
-  - { id: scala-tools.org, name: Scala-Tools Maven2 Release Repository, url: "http://scala-tools.org/repo-releases" }
+  - id: scala-tools.org
+    name: Scala-Tools Maven2 Release Repository
+    url: "http://scala-tools.org/repo-releases"
   - id: snapshots.scala-tools.org
     name: Scala-Tools Maven2 Snapshot Repository
     url: "http://scala-tools.org/repo-snapshots"
@@ -34,18 +36,32 @@ repositories:
       updatePolicy: never
       checksumPolicy: fail
 pluginRepositories:
-  - { id: scala-tools.org, name: Scala-Tools Maven2 Repository, url: "http://scala-tools.org/repo-releases" }
-  - { id: twdata-m2-repository, name: twdata.org Maven 2 Repository, url: "http://twdata-m2-repository.googlecode.com/svn/" }
+  - id: scala-tools.org
+    name: Scala-Tools Maven2 Repository
+    url: "http://scala-tools.org/repo-releases"
+  - id: twdata-m2-repository
+    name: twdata.org Maven 2 Repository
+    url: "http://twdata-m2-repository.googlecode.com/svn/"
 dependencies:
-  - { groupId: org.scala-lang, artifactId: scala-library, version: "${scala.version}" }
-  - { groupId: org.scala-lang, artifactId: scala-compiler, version: "${scala.version}" }
-  - { groupId: com.lingpipe, artifactId: lingpipe, version: 3.8.2 }
-  - { groupId: org.suffix, artifactId: "util_${scala.version}", version: 1.0 }
-  - { groupId: com.tfitter, artifactId: "tfitter_${scala.version}", version: 0.5 }
+  - groupId: org.scala-lang
+    artifactId: scala-library
+    version: "${scala.version}"
+  - groupId: org.scala-lang
+    artifactId: scala-compiler
+    version: "${scala.version}"
+  - groupId: com.lingpipe
+    artifactId: lingpipe
+    version: 3.8.2
+  - groupId: org.suffix
+    artifactId: "util_${scala.version}"
+    version: 1.0
+  - groupId: com.tfitter
+    artifactId: "tfitter_${scala.version}"
+    version: 0.5
 build:
   directory: "target-${scala.version}"
   resources:
-    - { directory: resources }
+    - directory: resources
   plugins:
     - groupId: org.apache.maven.plugins
       artifactId: maven-compiler-plugin
@@ -54,32 +70,56 @@ build:
         target: 1.6
       executions:
         - phase: compile
-          goals: [ compile ]
+          goals:
+            - compile
     - groupId: org.scala-tools
       artifactId: maven-scala-plugin
       executions:
-        - goals: [ compile ]
-      configuration:
-        args: [ -deprecation, -unchecked, -optimise ]
-        jvmArgs: [ -Xmx128m, -Xss2m, -Dfile.encoding=UTF-8 ]
-        excludes: [ "**/drafts/*.*" ]
-        launchers:
-          - { mainClass: com.tfitter.sips.InterestingPhrases, id: sips }
-          - { mainClass: com.tfitter.corpus.TopNGrams, id: ngrams }
+        - goals:
+          - compile
+      configuration : |
+        <args>
+          <arg>-deprecation</arg>
+          <arg>-unchecked</arg>
+          <arg>-optimise</arg>
+          <arg>-Ynojline</arg>
+        </args>
+        <jvmArgs>
+          <jvmArg>-Xmx128m</jvmArg>
+          <jvmArg>-Xss2m</jvmArg>
+          <jvmArg>-Dfile.encoding=UTF-8</jvmArg>
+        </jvmArgs>
+        <excludes>
+          <exclude>**/drafts/*.*</exclude>
+        </excludes>
+        <launchers>
+          <launcher>
+              <mainClass>com.tfitter.sips.InterestingPhrases</mainClass>
+              <id>sips</id>
+          </launcher>
+          <launcher>
+              <mainClass>com.tfitter.corpus.TopNGrams</mainClass>
+              <id>ngrams</id>
+          </launcher>
+        </launchers>
     - artifactId: maven-yamlpom-plugin
       executions:
-        - goals: [ sync ]
+        - goals:
+          - sync
       groupId: org.twdata.maven
     - artifactId: maven-assembly-plugin
       configuration:
-        descriptorRefs: [ jar-with-dependencies ]
+        descriptorRefs:
+          - jar-with-dependencies
         archive:
           manifest:
             mainClass: "${main.class}"
       executions:
         - id: make-assembly
           phase: package
-          goals: [ single ]
+          goals:
+            - single
 reporting:
   plugins:
-    - { groupId: org.scala-tools, artifactId: maven-scala-plugin }
+    - groupId: org.scala-tools
+      artifactId: maven-scala-plugin
