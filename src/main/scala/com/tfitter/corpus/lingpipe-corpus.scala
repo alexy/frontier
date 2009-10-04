@@ -14,6 +14,8 @@ import org.suffix.util.bdb.{BdbFlags, BdbArgs}
 import org.suffix.util.Info
 import org.suffix.util.Info.info
 
+import java.io.File
+
 // java.util.SortedSet.toList
 import scala.collection.jcl.Conversions._
 
@@ -65,9 +67,11 @@ class TwitterCorpus(bdbArgs: BdbArgs) extends Corpus[TokenizedLM] {
       if (!twitsProgress.isEmpty && twitCount % twitsProgress.get == 0) err.print(".")
       // TODO show before or after pruning?
       showNGrams match {
-        case Some(x) if (twitCount % x.often == 0) =>
+        // TODO avoid intermediate dump in the end,
+        // followed by the final dump right away
+        case Some(x) if (twitsToGo.hasNext && twitCount % x.often == 0) =>
           dumpCount += 1
-          info('dumpngrams)("#"+dumpCount+" intermediate dump of "+LM.showNGramCount(x.nGramCount)) //'
+          info('dumpngrams)("#"+dumpCount+"("+twitCount+" twits) intermediate dump of "+LM.showNGramCount(x.nGramCount)) //'
           LM.showTopNGrams(lm,x.nGramCount)
         case _ =>
       }
@@ -190,7 +194,7 @@ object TopNGrams extends optional.Application {
            err.println("serializing the ngram model into "+file+
            ", minOrder="+minWriteOrder+", maxOrder="+maxWriteOrder+
            ", minCount="+minWriteCount)
-           TokenNGramFiles.writeNGrams(lm,new java.io.File(file),
+           TokenNGramFiles.writeNGrams(lm,new File(file),
            minWriteOrder,
            maxWriteOrder,
            minWriteCount,
@@ -220,5 +224,28 @@ object LM {
 
   def showNGramCount(nc: NGramCount) = {
     nc.count+" top "+nc.nGram+"-grams"
+  }
+}
+
+object ReadNGrams extends optional.Application {
+  def main(gram: Option[Int],
+           topGram: Option[Int],
+           top: Option[Int],
+           lowerCase: Option[Boolean],
+           ngrams: String) {
+             
+        val gram_ = gram getOrElse 3
+        val topGram_ = topGram getOrElse gram_
+        val top_ = top getOrElse 20
+        val lowerCase_ = lowerCase getOrElse false
+        
+        val nGramCount = NGramCount(topGram_,top_)
+        
+        // read merged LM and write
+        val tokenizerFactory = LM.twitTokenizerFactory(lowerCase_)
+        val lm = new TokenizedLM(tokenizerFactory, gram_)
+        
+        TokenNGramFiles.addNGrams(new File(ngrams),"UTF-8",lm,0)
+        LM.showTopNGrams(lm,nGramCount)
   }
 }
