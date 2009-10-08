@@ -132,7 +132,6 @@
                       <arg>-deprecation</arg>
                       <arg>-unchecked</arg>
                       <arg>-optimise</arg>
-                      <arg>-Ynojline</arg>
                     </args>
                     <jvmArgs>
                       <jvmArg>-Xmx128m</jvmArg>
