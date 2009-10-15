@@ -19,88 +19,152 @@ import java.io.File
 // java.util.SortedSet.toList
 import scala.collection.jcl.Conversions._
 
+
 case class NGramCount (
   nGram: Int,
-  count: Int
-)
+  count: Int) {
+  override def toString = {
+    count+" top "+nGram+"-grams"
+  }
+}
 
-case class ShowTopNGrams (
+case class CountOften(
   often: Long,
-  nGramCount: NGramCount
-)
-
-class TwitterCorpus(bdbArgs: BdbArgs) extends Corpus[TokenizedLM] {
+  count: Int)
   
-  override def visitTest(lm: TokenizedLM): Unit = {}
+case class ActOften(
+  often:  Long,
+  action: Long => Unit)
 
-  // Iterator.take(Int) -- not Long, unacceptable generally!
-  private var maxTwits: Option[Long] = None
-  def setMaxTwits(m: Long): Unit = maxTwits = Some(m)
-  def unsetMaxTwits: Unit = maxTwits = None
 
-  private var twitsProgress: Option[Long] = None
-  def setTwitsProgress(m: Long): Unit = twitsProgress = Some(m)
-  def unsetTwitsProgress: Unit = twitsProgress = None
+abstract class TVisitor {
+  val twitProgress: Option[Long]
+  var everySoOften: List[ActOften]
+  def doTwit(t: Twit): Unit
+}
 
-  var showNGrams: Option[ShowTopNGrams] = None
+class TwitterCorpus(bdbArgs: BdbArgs) {
   
-  var pruneCount: Option[Int] = None
-  var pruneOften: Option[Long] = None
-
-  def visitLm(twits: Iterator[Twit])(lm: TokenizedLM): Unit = {
-    val twitsToGo = maxTwits match {
-          // m.toInt for stdlib sillily takes Int, not Long!
-          case Some(m) => 
-            info('maxtwits)("# respecting corpus maxTwits cutoff set at "+m) //'
-            twits.take(m.toInt)
-          case _ => twits
-        }
-    if (twitsToGo.hasNext) info('gottwits)("got twits") //'
-    // get the total here as it's "remaining"!
+  def visit(twits: Iterator[Twit])(tv: TVisitor): Unit = {
+    if (twits.hasNext) info('gottwits)("got twits") //'
     var twitCount: Long = 0
-    var dumpCount: Int  = 0
-    for (t <- twitsToGo) { // t <- twitsToGo
-      // err.println(totalTwits+": "+t.text)
-      // TODO lm.train is same as lm.handle?
-      lm.train(t.text.toCharArray,0,t.text.length)
+    for (t <- twits) {
+      tv.doTwit(t)
       twitCount += 1
-      if (!twitsProgress.isEmpty && twitCount % twitsProgress.get == 0) err.print(".")
-      // TODO show before or after pruning?
-      showNGrams match {
-        // TODO avoid intermediate dump in the end,
-        // followed by the final dump right away
-        case Some(x) if (twitsToGo.hasNext && twitCount % x.often == 0) =>
-          dumpCount += 1
-          info('dumpngrams)("#"+dumpCount+"("+twitCount+" twits) intermediate dump of "+LM.showNGramCount(x.nGramCount)) //'
-          LM.showTopNGrams(lm,x.nGramCount)
+      tv.twitProgress match {
+        case Some(x) if (twitCount % x == 0) => err.print(".")
         case _ =>
       }
-      pruneOften match {
-        case Some(often) if (!pruneCount.isEmpty && twitCount % often == 0) =>
-          val minCount = pruneCount.get
-          info('prune)("pruning lm after "+twitCount+" twits at mincount\n => before: "+lm.sequenceCounter.trieSize+" ngrams, after: ") //'
-          lm.sequenceCounter.prune(minCount)
-          info('prune)(lm.sequenceCounter.trieSize) //'
-        case _ =>
+      // TODO show before or after pruning?
+      tv.everySoOften foreach { e =>
+        if (twits.hasNext && twitCount % e.often == 0)
+          e.action(twitCount)
       }
     }
     info('twitwalk)("did "+twitCount+" twits.") //'
   }
   
-  val visitAll = visitLm(tdb.allTwits)(_)
-  // need to override visitTrain, should be def not val:
-  // val visitTrain = visitAll _
-  override def visitTrain(lm: TokenizedLM): Unit = visitAll(lm)
-  // until stdlib Iterator's take's param is Int, not Long, have to toInt!
-  def visitTake(atMost: Long)(lm: TokenizedLM) = visitLm(tdb.allTwits.take(atMost.toInt))(lm)
+  val visitAll = visit(tdb.allTwits)(_)
+
+  // TODO until stdlib Iterator's take's param is Int, not Long, have to toInt!
+  def visitTake(atMost: Long)(tv: TVisitor) = visit(tdb.allTwits.take(atMost.toInt))(tv)
   
-  def visitUsersLm(users: List[UserID], lm: TokenizedLM) = 
+  def visitUsers(users: List[UserID], tv: TVisitor) = 
     users foreach { uid =>
-      visitLm(tdb.userTwits(uid))(lm)
+      visit(tdb.userTwits(uid))(tv)
     }
 
   val tdb: TwitterDB = new TwitterBDB(bdbArgs)
 }
+  
+  
+class RichTokenizedLM(tokenizerFactory: TokenizerFactory, nGram: Int) 
+  extends TokenizedLM(tokenizerFactory,nGram) {
+  def showTopNGrams(nGramCount: NGramCount): Unit = {
+    val NGramCount(topGram,topCount) = nGramCount
+
+    val freqTerms: List[ScoredObject[Array[String]]] = frequentTermSet(topGram, topCount).toList
+
+    for (so <- freqTerms) {
+      println(so.score+": "+so.getObject.toList.mkString(","))
+    }
+  }
+
+}
+
+
+object RichTokenizedLM {
+  // TODO we need some other way to pimp it up from just an lm parameter:
+  // implicit def richTokenizedLM(lm: TokenizedLM): RichTokenizedLM = new RichTokenizedLM(lm)
+
+  // TODO add @usernames and #hashtags
+  def twitTokenizerFactory(lowerCase: Boolean): TokenizerFactory = {
+    var factory = IndoEuropeanTokenizerFactory.INSTANCE
+    factory = new RegExFilteredTokenizerFactory(factory,Pattern.compile("\\p{Alpha}+"))
+    if (lowerCase) factory = new LowerCaseTokenizerFactory(factory)
+    factory = new EnglishStopTokenizerFactory(factory)
+    factory
+  }
+}
+
+
+class TVisitorLM(
+  val nGram: Int,
+  val lowerCase: Boolean,
+  val nGramCount: NGramCount, 
+  val dumpOften: Option[Long], 
+  val pruneOften: Option[CountOften],
+  val twitProgress: Option[Long]) extends TVisitor {
+    
+  // no need for pimping -- lm is created explicitly rich   
+  // import RichTokenizedLM._
+    
+  // no need to have parts at the top
+  // val NGramCount(topGram,topCount) = nGramCount
+  
+  var dumpCount = 0
+  
+  def reset: Unit = {
+    dumpCount = 0
+  }
+  
+  def dumpNGrams(twitCount: Long): Unit = {
+    dumpCount += 1
+    info('dumpngrams)("#"+dumpCount+"("+twitCount+" twits) intermediate dump of "+nGramCount) //'
+    showTopNGrams(nGramCount)
+  }
+
+  def prune(twitCount: Long) = {
+    pruneOften match {
+      case Some(o) =>
+        info('prune)("pruning lm after "+twitCount+" twits at mincount\n => before: "+lm.sequenceCounter.trieSize+" ngrams, after: ") //'
+        lm.sequenceCounter.prune(o.count)
+        info('prune)(lm.sequenceCounter.trieSize) //'
+      case _ =>
+    }
+  }
+  
+  // we need LM.showTopNGrams to be used with ReadNGrams
+  def showTopNGrams(nGramCount: NGramCount): Unit = lm.showTopNGrams(nGramCount)
+  
+  val tokenFactory: TokenizerFactory = RichTokenizedLM.twitTokenizerFactory(lowerCase)
+  val lm = new RichTokenizedLM(tokenFactory,nGram)
+  
+  def doTwit(twit: Twit) = lm.train(twit.text.toCharArray,0,twit.text.length)
+
+  var everySoOften: List[ActOften] = List()  
+  dumpOften match {
+    case Some(often) => 
+      everySoOften ::= ActOften(often, dumpNGrams)
+    case _ =>
+  }
+  pruneOften match {
+    case Some(o) => 
+      everySoOften ::= ActOften(o.often, prune)
+    case _ =>
+  }
+}
+
 
 object TopNGrams extends optional.Application {
 
@@ -121,7 +185,7 @@ object TopNGrams extends optional.Application {
     gram: Option[Int],
     topGram: Option[Int],
     top: Option[Int],
-    showOften: Option[Long],
+    dumpOften: Option[Long],
     debugOn: Option[String],
     debugOff: Option[String],
     groupOn: Option[String],
@@ -129,12 +193,17 @@ object TopNGrams extends optional.Application {
     write: Option[String],
     args: Array[String]) = {
 
-    val lowerCase_ = !lowerCase.isEmpty
     val gram_ = gram getOrElse 2
+    val lowerCase_ = !lowerCase.isEmpty
     val topGram_ = topGram getOrElse gram_
     val top_ = top getOrElse 20
-
     val nGramCount = NGramCount(topGram_,top_)
+    val pruneCount_ = pruneCount getOrElse 2
+    val pruneOftenCount = pruneOften match {
+      case Some(often) => 
+        Some(CountOften(often,pruneCount_))
+      case _ => None
+    }
 
     val bdbEnvPath   = envName getOrElse "bdb"
     val bdbStoreName = storeName getOrElse "twitter"
@@ -163,28 +232,24 @@ object TopNGrams extends optional.Application {
     val bdbArgs = BdbArgs(bdbEnvPath,bdbStoreName,bdbFlags,bdbCacheSize)
 
     val twitCorpus = new TwitterCorpus(bdbArgs)
+          
+    val twitVisitor = new TVisitorLM(
+      gram_,lowerCase_,
+      nGramCount,dumpOften,
+      pruneOftenCount,
+      showProgress)
     
-    if (!showProgress.isEmpty) twitCorpus.setTwitsProgress(showProgress.get)
-    // twitCorpus.setMaxTwits(maxTwits getOrElse 100)
-
-    twitCorpus.showNGrams = showOften match {
-      case Some(often) => Some(ShowTopNGrams(often,NGramCount(topGram_,top_)))
-      case _ => None
-    }
-    twitCorpus.pruneCount = pruneCount
-    twitCorpus.pruneOften = pruneOften
-    
-    val tf: TokenizerFactory = LM.twitTokenizerFactory(lowerCase_)
-    val lm = new TokenizedLM(tf,gram_)
-
     maxTwits match {
       case Some(atMost) =>
         err.println("doing at most "+atMost+" tweets")
-        twitCorpus.visitTake(atMost)(lm)
-      case _ => twitCorpus.visitAll(lm)
+        twitCorpus.visitTake(atMost)(twitVisitor)
+      case _ => 
+        err.println("doing ALL tweets -- may take a LONG time!")
+        twitCorpus.visitAll(twitVisitor)
     }
-    err.println("the final dump of "+LM.showNGramCount(nGramCount))    
-    LM.showTopNGrams(lm,nGramCount)
+    
+    err.println("the final dump of "+nGramCount)    
+    twitVisitor.showTopNGrams(nGramCount)
   
     val minWriteOrder = 0
     val maxWriteOrder = gram_
@@ -194,7 +259,7 @@ object TopNGrams extends optional.Application {
            err.println("serializing the ngram model into "+file+
            ", minOrder="+minWriteOrder+", maxOrder="+maxWriteOrder+
            ", minCount="+minWriteCount)
-           TokenNGramFiles.writeNGrams(lm,new File(file),
+           TokenNGramFiles.writeNGrams(twitVisitor.lm,new File(file),
            minWriteOrder,
            maxWriteOrder,
            minWriteCount,
@@ -204,28 +269,6 @@ object TopNGrams extends optional.Application {
   }
 }
 
-object LM {
-  def showTopNGrams(lm: TokenizedLM, nGramCount: NGramCount) = {
-    val NGramCount(nGram,count) = nGramCount
-    val freqTerms: List[ScoredObject[Array[String]]] = lm.frequentTermSet(nGram, count).toList
-
-    for (so <- freqTerms) {
-      println(so.score+": "+so.getObject.toList.mkString(","))
-    }
-  }
-
-  def twitTokenizerFactory(lowerCase: Boolean): TokenizerFactory = {
-      var factory = IndoEuropeanTokenizerFactory.INSTANCE
-      factory = new RegExFilteredTokenizerFactory(factory,Pattern.compile("\\p{Alpha}+"))
-      if (lowerCase) factory = new LowerCaseTokenizerFactory(factory)
-      factory = new EnglishStopTokenizerFactory(factory)
-      factory
-  }
-
-  def showNGramCount(nc: NGramCount) = {
-    nc.count+" top "+nc.nGram+"-grams"
-  }
-}
 
 object ReadNGrams extends optional.Application {
   def main(gram: Option[Int],
@@ -243,10 +286,10 @@ object ReadNGrams extends optional.Application {
         
         // read merged LM and write
         val tokenizerFactory = LM.twitTokenizerFactory(lowerCase_)
-        val lm = new TokenizedLM(tokenizerFactory, gram_)
+        val lm = new RichTokenizedLM(tokenizerFactory, gram_)
         
         TokenNGramFiles.addNGrams(new File(ngrams),"UTF-8",lm,0)
         err.println("finished reading back the model, finding "+ top_ +" top "+ topGram_ +"-grams...")
-        LM.showTopNGrams(lm,nGramCount)
+        lm.showTopNGrams(nGramCount)
   }
 }

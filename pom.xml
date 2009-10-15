@@ -60,11 +60,6 @@
             <name>Scala-Tools Maven2 Repository</name>
             <url>http://scala-tools.org/repo-releases</url>
         </pluginRepository>
-        <pluginRepository>
-            <id>twdata-m2-repository</id>
-            <name>twdata.org Maven 2 Repository</name>
-            <url>http://twdata-m2-repository.googlecode.com/svn/</url>
-        </pluginRepository>
     </pluginRepositories>
     <dependencies>
         <dependency>
@@ -92,6 +87,11 @@
             <artifactId>tfitter_${scala.version}</artifactId>
             <version>0.5</version>
         </dependency>
+        <dependency>
+			<groupId>org.scala-tools</groupId>
+			<artifactId>time</artifactId>
+			<version>2.7.5-0.2-SNAPSHOT</version>
+		</dependency>
     </dependencies>
     <build>
         <directory>target-${scala.version}</directory>
@@ -128,41 +128,10 @@
                     </execution>
                 </executions>
                 <configuration>
-					<args>
-                      <arg>-deprecation</arg>
-                      <arg>-unchecked</arg>
-                      <arg>-optimise</arg>
-                    </args>
-                    <jvmArgs>
-                      <jvmArg>-Xmx128m</jvmArg>
-                      <jvmArg>-Xss2m</jvmArg>
-                      <jvmArg>-Dfile.encoding=UTF-8</jvmArg>
-                    </jvmArgs>
-                    <excludes>
-                      <exclude>**/drafts/*.*</exclude>
-                    </excludes>
-                    <launchers>
-                      <launcher>
-                          <mainClass>com.tfitter.sips.InterestingPhrases</mainClass>
-                          <id>sips</id>
-                      </launcher>
-                      <launcher>
-                          <mainClass>com.tfitter.corpus.TopNGrams</mainClass>
-                          <id>ngrams</id>
-                      </launcher>
-                    </launchers>
-                </configuration>
-            </plugin>
-            <plugin>
-                <artifactId>maven-yamlpom-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>sync</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <groupId>org.twdata.maven</groupId>
+					<excludes>
+						<exclude>**/draft/*.*</exclude>
+					</excludes>
+				</configuration>
             </plugin>
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
