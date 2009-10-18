@@ -128,6 +128,22 @@
                     </execution>
                 </executions>
                 <configuration>
+                    <args>
+                        <arg>-deprecation</arg>
+                        <arg>-unchecked</arg>
+                        <arg>-optimise</arg>
+                    </args>
+                    <jvmArgs>
+                        <jvmArg>-Xmx128m</jvmArg>
+                        <jvmArg>-Xss2m</jvmArg>
+                        <jvmArg>-Dfile.encoding=UTF-8</jvmArg>
+                    </jvmArgs>
+                    <launchers>
+                        <launcher>
+                            <mainClass>com.tfitter.trends.WordUsers</mainClass>
+                            <id>wu</id>
+                        </launcher>
+                    </launchers>
 					<excludes>
 						<exclude>**/draft/*.*</exclude>
 					</excludes>

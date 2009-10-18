@@ -285,7 +285,7 @@ object ReadNGrams extends optional.Application {
         val nGramCount = NGramCount(topGram_,top_)
         
         // read merged LM and write
-        val tokenizerFactory = LM.twitTokenizerFactory(lowerCase_)
+        val tokenizerFactory = RichTokenizedLM.twitTokenizerFactory(lowerCase_)
         val lm = new RichTokenizedLM(tokenizerFactory, gram_)
         
         TokenNGramFiles.addNGrams(new File(ngrams),"UTF-8",lm,0)
