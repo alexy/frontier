@@ -69,7 +69,7 @@ case class WordPeople(name: String) {
   }
   
   override def toString =
-    name+":WordPeople: has "+nWords+" words, "+nUsers+" users, "+nWordUsers+" total pairs"
+    name+":WordPeople: has "+nWords+" words, "+nUsers+" people, "+nWordUsers+" total pairs"
 }
 
 
@@ -92,7 +92,7 @@ case class WordRole(name: String) {
   val tags  = WordPeople(name+" tags")
   val urls  = WordPeople(name+" urls")
  
-  override def toString = name+":WordRole:\n"+List(words,users,tags,urls).foldLeft("")(_+"\n"+_)
+  override def toString = name+" : WordRole"+List(words,users,tags,urls).foldLeft("")(_+"\n"+_)
 }
 
 case class WordInitiators() extends WordRole("initiators")
@@ -145,7 +145,7 @@ class TVisitorWordsByRole(
   
   // def joinRoles: WordTweeters
   
-  override def toString = "words by role:\n"+List(initiators,repliers,mumblers).foldLeft("")(_+"\n"+_)
+  override def toString = "words by role:"+List(initiators,repliers,mumblers).foldLeft("")(_+"\n"+_)+"\n"
 }
 
 
