@@ -48,11 +48,15 @@ class TwitterCorpus(bdbArgs: BdbArgs) {
   def visit(twits: Iterator[Twit])(tv: TVisitor): Unit = {
     if (twits.hasNext) info('gottwits)("got twits") //'
     var twitCount: Long = 0
+    var twitProgressCount = 0
     for (t <- twits) {
       tv.doTwit(t)
       twitCount += 1
       tv.twitProgress match {
-        case Some(x) if (twitCount % x == 0) => err.print(".")
+        case Some(x) if (twitCount % x == 0) => {
+        	twitProgressCount += 1
+        	err.print(twitProgressCount)
+        }
         case _ =>
       }
       // TODO show before or after pruning?
