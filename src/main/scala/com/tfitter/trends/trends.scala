@@ -330,13 +330,11 @@ object WordUsers extends optional.Application {
     byRole:    Option[Boolean],
     lowerCase: Option[Boolean],
     
-    twitProgress: Option[Long],
-    
-    poolProgress: Option[Long]
+    poolProgress: Option[Long],
+    twitProgress: Option[Long],    
     wordProgress: Option[Long],
     userProgress: Option[Long],
     pairProgress: Option[Long],
-    
     dumpProgress: Option[Long],
     
     wordFile: Option[String],  
@@ -345,12 +343,16 @@ object WordUsers extends optional.Application {
     def givenOrPooled(given: Option[Long], pool: Option[Long]): Option[Long] = 
     	if (given.isEmpty) pool
     	else given
-    
-    val lowerCase_   = lowerCase getOrElse false
+
+	val twitProgress_ = givenOrPooled(twitProgress, poolProgress)    
     val wordUserProgress = WordUserProgress(
-    	givenOrPooled(wordProgress, poolProgress)
-    	givenOrPooled(userProgress, poolProgress)
+    	givenOrPooled(wordProgress, poolProgress),
+    	givenOrPooled(userProgress, poolProgress),
     	givenOrPooled(pairProgress, poolProgress))
+	val dumpProgress_ = givenOrPooled(dumpProgress, poolProgress)    
+    
+
+    val lowerCase_   = lowerCase getOrElse false
 
     val bdbEnvPath   = envName   getOrElse "bdb"
     val bdbStoreName = storeName getOrElse "twitter"
@@ -373,11 +375,11 @@ object WordUsers extends optional.Application {
     val tv = byRole match {
         case Some(b) if b => new TVisitorWordsByRole(
                                       lowerCase_,
-                                      twitProgress,
+                                      twitProgress_,
                                       wordUserProgress)
         case _            => new TVisitorWordsTogether(
                                       lowerCase_,
-                                      twitProgress,
+                                      twitProgress_,
                                       wordUserProgress)
         }       
     
@@ -394,7 +396,7 @@ object WordUsers extends optional.Application {
     err.println(tv)
     
     wordFile match {
-		case Some(prefix) => tv.writeWordDayPeopleSizes(prefix, dumpProgress)
+		case Some(prefix) => tv.writeWordDayPeopleSizes(prefix, dumpProgress_)
 		case _ =>
     }
   }
