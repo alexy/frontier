@@ -124,6 +124,26 @@ case class WordInfo (
 }
 
 
+class Histogram[T] {
+	val h: Map[T,Int] = Map()
+	
+	def inc(t: T): Unit = {
+		h.get(t) match {
+			case Some(_) => h(t) += 1
+			case _ => h(t) = 1
+		}
+	}
+	
+	def toList: List[(T,Int)] = {
+		h.toList sort { _._2 > _._2 }
+	}
+	
+	override def toString: String = {
+		toList.mkString
+	}
+}
+
+
 // NB could make WordUserProgress constructor argument
 case class WordPeople(name: String) {
   val words: WordTabs = Map.empty
@@ -183,6 +203,26 @@ case class WordPeople(name: String) {
         if (t.isInit)  info.nInits   += 1 // may be several per reply!      
   }
   
+  def prune(minCount: Int, progress: Boolean): Unit = {
+  	var prunedCount = 0
+  	words foreach { case (word,info) =>
+  		if (info.userDays.size < minCount) { 
+  			words.removeKey(word) // TODO remove in 2.8
+  			prunedCount += 1
+  		}
+  		if (progress) err.println(name+" "+prunedCount+" words pruned")
+  	}
+  }
+  
+  def sizeHistogram: Histogram[Int] = {
+  	val h = new Histogram[Int]()
+  	words foreach { case (word,info) =>
+  		val size = info.userDays.size
+  		h.inc(size)
+  	}
+  	h
+  }
+  
   def writeDayPeopleSizes(fileNamePrefix: String, progress: Option[Long]): Unit = {
   	val fileName = fileNamePrefix+"-"+name
   	val bout = new BufferedOutputStream(new FileOutputStream(fileName))
@@ -217,7 +257,7 @@ case class WordRole(name: String) {
   val users = WordPeople(name+"-users")
   val tags  = WordPeople(name+"-tags")
   val urls  = WordPeople(name+"-urls")
-  
+  val all = List(words,users,tags,urls)
   
   def addTwit(t: Twit, progress: WordUserProgress) = {
     val tzer = new TwitTokens(t.text)
@@ -235,12 +275,17 @@ case class WordRole(name: String) {
     }
   }
  
-  override def toString = name+" : WordRole"+List(words,users,tags,urls).foldLeft("")(_+"\n"+_)
+  override def toString = name+" : WordRole"+all.foldLeft("")(_+"\n"+_)
   
   def writeWordDayPeopleSizes(filePrefix: String, progress: Option[Long]) = {
-  	List(words,users,tags,urls) foreach { 
+  	all foreach { 
   		_.writeDayPeopleSizes(filePrefix, progress) 
   	}
+  }
+  
+  def wordSizeHistogram: String = {
+  	name+" word size histogram: "+
+  	(all map { _.sizeHistogram }) mkString "\n"
   }
 }
 
@@ -262,6 +307,9 @@ abstract class TVisitorWordsBase(
   def writeWordDayPeopleSizes(
   	filePrefix: String,
   	progress: Option[Long]): Unit
+  	
+  def writeWordSizeHistogram(
+  	fileName: String)
 }
 
 
@@ -274,6 +322,7 @@ class TVisitorWordsByRole(
   val initiators = WordInitiators()
   val repliers   = WordRepliers()
   val mumblers   = WordMumblers()
+  val all = List(initiators,repliers,mumblers)
   
   def doTwit(t: Twit) = {
     t.role match {
@@ -285,14 +334,20 @@ class TVisitorWordsByRole(
   
   // def joinRoles: WordTweeters
   
-  override def toString = "words by role:"+List(initiators,repliers,mumblers).foldLeft("")(_+"\n"+_)+"\n"
+  override def toString = "words by role:"+all.foldLeft("")(_+"\n"+_)+"\n"
 
   def writeWordDayPeopleSizes(filePrefix: String, progress: Option[Long]) = {
-  	List(initiators,repliers,mumblers) foreach { 
+  	all foreach { 
   		_.writeWordDayPeopleSizes(filePrefix, progress)
   	}
   }
 
+  def writeWordSizeHistogram(fileName: String) = {
+  	val bout = new BufferedOutputStream(new FileOutputStream(fileName))
+  	val hist = (all map { _.wordSizeHistogram }).mkString("")
+  	bout.write(hist.getBytes)
+	bout.close
+  }
 }
 
 
@@ -312,6 +367,13 @@ class TVisitorWordsTogether(
     def writeWordDayPeopleSizes(filePrefix: String, progress: Option[Long]) = {
   		tweeters.writeWordDayPeopleSizes(filePrefix, progress)
   	}
+
+	def writeWordSizeHistogram(fileName: String) = {
+		val bout = new BufferedOutputStream(new FileOutputStream(fileName))
+		val hist = tweeters.wordSizeHistogram
+		bout.write(hist.getBytes)
+		bout.close
+	}
 }
 
 object WordUsers extends optional.Application {
@@ -337,6 +399,7 @@ object WordUsers extends optional.Application {
     pairProgress: Option[Long],
     dumpProgress: Option[Long],
     
+    histFile: Option[String],
     wordFile: Option[String],  
     args: Array[String]) = {
     
@@ -398,6 +461,11 @@ object WordUsers extends optional.Application {
     wordFile match {
 		case Some(prefix) => tv.writeWordDayPeopleSizes(prefix, dumpProgress_)
 		case _ =>
+    }
+    
+    histFile match {
+    	case Some(file) => tv.writeWordSizeHistogram(file)
+    	case _ =>
     }
   }
 }
