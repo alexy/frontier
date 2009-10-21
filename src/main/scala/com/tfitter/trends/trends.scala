@@ -90,7 +90,7 @@ case class WordInfo (
 
     def countDayPeopleSizes: DaySizes = { 
     	val dayPeopleSizes: DaySizes = Map()
-    	userDays foreach { case (user, dayset) =>
+    	userDays foreach { case (_, dayset) =>
     		dayset.indices foreach { case day =>
 				dayPeopleSizes.get(day) match {
 					case Some(_) => dayPeopleSizes(day) += 1
@@ -112,7 +112,7 @@ case class WordInfo (
 		val sortedDays = dayPeopleSizes.keySet.toArray // not yet:
 		util.Sorting.quickSort(sortedDays)
 		
-		sortedDays foreach { day =>
+		sortedDays foreach { case day =>
 			bout.write(("\t"+day+" "+dayPeopleSizes(day)+"\n").getBytes)
 		}
   	}
