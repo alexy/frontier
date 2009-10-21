@@ -113,7 +113,7 @@ case class WordInfo (
 		util.Sorting.quickSort(sortedDays)
 		
 		sortedDays foreach { case day =>
-			bout.write(("\t"+day+" "+dayPeopleSizes(day)+"\n").getBytes)
+			bout.write(("\t"+day+" "+dayPeopleSizes(day)).getBytes)
 		}
   	}
   	
@@ -201,6 +201,7 @@ case class WordPeople(name: String) {
   			case Some(n) if wordCount % n == 0 => err.print(".")
   			case _ =>
   		}
+  		bout.write("\n".getBytes)
   	}
   	bout.close
   	err.println("done")
@@ -330,19 +331,26 @@ object WordUsers extends optional.Application {
     lowerCase: Option[Boolean],
     
     twitProgress: Option[Long],
+    
+    poolProgress: Option[Long]
     wordProgress: Option[Long],
     userProgress: Option[Long],
     pairProgress: Option[Long],
+    
     dumpProgress: Option[Long],
     
     wordFile: Option[String],  
     args: Array[String]) = {
     
+    def givenOrPooled(given: Option[Long], pool: Option[Long]): Option[Long] = 
+    	if (given.isEmpty) pool
+    	else given
+    
     val lowerCase_   = lowerCase getOrElse false
     val wordUserProgress = WordUserProgress(
-    	wordProgress, 
-    	userProgress, 
-    	pairProgress)
+    	givenOrPooled(wordProgress, poolProgress)
+    	givenOrPooled(userProgress, poolProgress)
+    	givenOrPooled(pairProgress, poolProgress))
 
     val bdbEnvPath   = envName   getOrElse "bdb"
     val bdbStoreName = storeName getOrElse "twitter"
