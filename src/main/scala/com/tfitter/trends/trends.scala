@@ -285,7 +285,9 @@ case class WordRole(name: String) {
   
   def wordSizeHistogram: String = {
   	name+" word size histogram: "+
-  	(all map { _.sizeHistogram }) mkString "\n"
+  	// NB was interspersing one character per line:
+  	// (all map { _.sizeHistogram }) mkString "\n"
+  	all.map(_.sizeHistogram).mkString("\n")
   }
 }
 
