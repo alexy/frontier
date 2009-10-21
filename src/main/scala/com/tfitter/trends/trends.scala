@@ -194,6 +194,7 @@ case class WordPeople(name: String) {
   	
   	var wordCount = 0
   	sortedWords foreach { key =>
+  		bout.write(key.getBytes)
   		words(key).countWriteDayPeopleSizes(bout)
   		wordCount += 1
   		progress match {
