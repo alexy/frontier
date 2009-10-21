@@ -31,7 +31,7 @@ import types._
 
 // day of year from 0 to Total_days in study
 object DaySet {
-    var epoch = new DateTime("2008-01-01")
+    var epoch = new DateTime("2009-06-15")
     val startBits = 16 // default starting size for java.util.BitSet
     def apply(startBits: Int): DaySet = new DaySet(startBits)
     // NB when declared as apply: DaySet,
