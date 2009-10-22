@@ -39,19 +39,25 @@ case class ActOften(
 
 abstract class TVisitor {
   val twitProgress: Option[Long]
+
   var everySoOften: List[ActOften]
-  def doTwit(t: Twit): Unit
+  // var afterAll: List[ActOften]
+  
+  def doTwit(t: Twit, twitCount: Long): Unit
+  
 }
 
 class TwitterCorpus(bdbArgs: BdbArgs) {
   
   def visit(twits: Iterator[Twit])(tv: TVisitor): Unit = {
     if (twits.hasNext) info('gottwits)("got twits") //'
-    var twitCount: Long = 0
-    var twitProgressCount = 0
+	var twitCount: Long = 0
+    var twitProgressCount: Int = 0
     for (t <- twits) {
-      tv.doTwit(t)
+    
       twitCount += 1
+      tv.doTwit(t,twitCount)
+
       tv.twitProgress match {
         case Some(x) if (twitCount % x == 0) => {
         	twitProgressCount += 1
@@ -59,9 +65,13 @@ class TwitterCorpus(bdbArgs: BdbArgs) {
         }
         case _ =>
       }
+      
       // TODO show before or after pruning?
+      // TODO now we always do action in the end,
+      // even when it's odd!  Make configurable?
+      
       tv.everySoOften foreach { e =>
-        if (twits.hasNext && twitCount % e.often == 0)
+        if (!twits.hasNext || twitCount % e.often == 0)
           e.action(twitCount)
       }
     }
@@ -154,7 +164,8 @@ class TVisitorLM(
   val tokenFactory: TokenizerFactory = RichTokenizedLM.twitTokenizerFactory(lowerCase)
   val lm = new RichTokenizedLM(tokenFactory,nGram)
   
-  def doTwit(twit: Twit) = lm.train(twit.text.toCharArray,0,twit.text.length)
+  def doTwit(twit: Twit, twitCount: Long) = 
+  	lm.train(twit.text.toCharArray,0,twit.text.length)
 
   var everySoOften: List[ActOften] = List()  
   dumpOften match {

@@ -13,7 +13,7 @@ import com.tfitter.db.types.UserID // {UserID => User}
 import com.tfitter.db.{Twit,TwitRole,TwitInit,TwitReply,TwitMumble}
 
 import com.tfitter.tokenizer._
-import com.tfitter.corpus.{TVisitor,TwitterCorpus,ActOften}
+import com.tfitter.corpus.{TVisitor,TwitterCorpus,CountOften,ActOften}
 import com.tfitter.corpus.RichTokenizedLM._
 import System.err
 
@@ -61,7 +61,8 @@ class DaySet(val startBits: Int) {
 case class WordUserProgress(
     word: Option[Long],
     user: Option[Long],
-    pair: Option[Long]
+    pair: Option[Long],
+    prune: Boolean
 )
 
 
@@ -161,7 +162,7 @@ case class WordPeople(name: String) {
         case Some(n) if nWordUsers % n == 0 => print(":")
         case _ =>
     }
-    if (!(users contains user)) {
+    if (!users.contains(user)) {
         users += user
         nUsers += 1
         progress.user match {
@@ -203,14 +204,15 @@ case class WordPeople(name: String) {
         if (t.isInit)  info.nInits   += 1 // may be several per reply!      
   }
   
-  def prune(minCount: Int, progress: Boolean): Unit = {
+  def prune(minCount: Int, progress: Boolean)(twitCount: Long): Unit = {
   	var prunedCount = 0
   	words foreach { case (word,info) =>
   		if (info.userDays.size < minCount) { 
   			words.removeKey(word) // TODO remove in 2.8
   			prunedCount += 1
   		}
-  		if (progress) err.println(name+" "+prunedCount+" words pruned")
+  		if (progress) err.println(name+" "+prunedCount+" words pruned at "+
+  			twitCount+" twits")
   	}
   }
   
@@ -289,6 +291,12 @@ case class WordRole(name: String) {
   	// (all map { _.sizeHistogram }) mkString "\n"
   	(all.map { case role => role.name+" "+role.sizeHistogram }).mkString("\n")
   }
+  
+  def prune(minCount: Int, progress: Boolean)(twitCount: Long) = {
+  	all foreach { words =>
+  		words.prune(minCount, progress)(twitCount)
+  	}
+  }
 }
 
 case class WordInitiators() extends WordRole("initiators")
@@ -299,11 +307,20 @@ case class WordTweeters()   extends WordRole("tweeters")
 abstract class TVisitorWordsBase(
     val lowerCase: Boolean,
     val twitProgress: Option[Long],
-    val progress: WordUserProgress) extends TVisitor {
+    val progress: WordUserProgress,
+    val pruneCountOften: Option[CountOften]) extends TVisitor {
     
+  var twitCount: Long = 0
   var everySoOften: List[ActOften] = List()
-      
-  // doTwit still undefined, see derived!
+    
+  // TODO could keep our own twitCount incremented,
+  // or just access the original TwitCorpus's one
+  // and leave doTwit(t: Twit) without count
+  
+  def doTwit(t: Twit, tc: Long) = {
+  	twitCount = tc
+  }
+  
   def toString: String
   
   def writeWordDayPeopleSizes(
@@ -312,21 +329,33 @@ abstract class TVisitorWordsBase(
   	
   def writeWordSizeHistogram(
   	fileName: String)
+
+  def prune(minCount: Int, progress: Boolean)(twitCount: Long)
+  
+  everySoOften = pruneCountOften match {
+  	case Some(CountOften(often,count)) => 
+  		List(ActOften(often,
+  			prune(count,progress.prune)))
+  	case _ => List()
+  	}
+
 }
 
 
 class TVisitorWordsByRole(
     override val lowerCase: Boolean,
     override val twitProgress: Option[Long],
-    override val progress: WordUserProgress) extends TVisitorWordsBase(
-        lowerCase, twitProgress, progress) {
+    override val progress: WordUserProgress,
+    override val pruneCountOften: Option[CountOften]) extends TVisitorWordsBase(
+        lowerCase, twitProgress, progress, pruneCountOften) {
 
   val initiators = WordInitiators()
   val repliers   = WordRepliers()
   val mumblers   = WordMumblers()
   val all = List(initiators,repliers,mumblers)
   
-  def doTwit(t: Twit) = {
+  override def doTwit(t: Twit, tc: Long) = {
+  	super.doTwit(t, tc)
     t.role match {
         case TwitInit(_)    => initiators.addTwit(t, progress)
         case TwitReply(_,_) => repliers.addTwit(t, progress)
@@ -350,19 +379,29 @@ class TVisitorWordsByRole(
   	bout.write(hist.getBytes)
 	bout.close
   }
+  
+  def prune(minCount: Int, progress: Boolean)(twitCount: Long) = {
+  	all foreach { role =>
+  		role.prune(minCount,progress)(twitCount)
+  	}
+  }
 }
 
 
 class TVisitorWordsTogether(
     override val lowerCase: Boolean,
     override val twitProgress: Option[Long],
-    override val progress: WordUserProgress) extends TVisitorWordsBase(
-        lowerCase, twitProgress, progress) {
+    override val progress: WordUserProgress,
+    override val pruneCountOften: Option[CountOften]) extends TVisitorWordsBase(
+        lowerCase, twitProgress, progress, pruneCountOften) {
 
     val tweeters = WordTweeters()
 
     // could make addTwitRole curried
-    def doTwit(t: Twit) = tweeters.addTwit(t, progress)
+    override def doTwit(t: Twit, tc: Long) = {
+    	super.doTwit(t, tc)
+    	tweeters.addTwit(t, progress)
+    }
     
     override def toString = "words together: "+tweeters
     
@@ -375,6 +414,10 @@ class TVisitorWordsTogether(
 		val hist = tweeters.wordSizeHistogram
 		bout.write(hist.getBytes)
 		bout.close
+	}
+
+	def prune(minCount: Int, progress: Boolean)(twitCount: Long) = {
+		tweeters.prune(minCount,progress)(twitCount)
 	}
 }
 
@@ -394,14 +437,23 @@ object WordUsers extends optional.Application {
     byRole:    Option[Boolean],
     lowerCase: Option[Boolean],
     
+    // TODO
+    // prune: Option[String]
+    // then get Either a pair or one (final) pruning mincount
+    
+	pruneCount: Option[Int],
+	pruneOften: Option[Long],
+	showPrune: Option[Boolean],
+	
     poolProgress: Option[Long],
     twitProgress: Option[Long],    
     wordProgress: Option[Long],
     userProgress: Option[Long],
     pairProgress: Option[Long],
-    dumpProgress: Option[Long],
     
     histFile: Option[String],
+    dumpProgress: Option[Long], // words histogram
+
     wordFile: Option[String],  
     args: Array[String]) = {
     
@@ -409,15 +461,30 @@ object WordUsers extends optional.Application {
     	if (given.isEmpty) pool
     	else given
 
+	val showPrune_ = showPrune.get
 	val twitProgress_ = givenOrPooled(twitProgress, poolProgress)    
+
     val wordUserProgress = WordUserProgress(
     	givenOrPooled(wordProgress, poolProgress),
     	givenOrPooled(userProgress, poolProgress),
-    	givenOrPooled(pairProgress, poolProgress))
+    	givenOrPooled(pairProgress, poolProgress),
+    	showPrune_)
+    	
 	val dumpProgress_ = givenOrPooled(dumpProgress, poolProgress)    
     
 
     val lowerCase_   = lowerCase getOrElse false
+    
+    val pruneCountOftenOpt = pruneOften match {
+    	case Some(often) => 
+    		Some(CountOften(often,
+    			pruneCount match {
+    				case Some(count) => count
+    				case _ => 2 // TODO DEFAULT
+    				}))
+    	case _ => None
+    }
+    	
 
     val bdbEnvPath   = envName   getOrElse "bdb"
     val bdbStoreName = storeName getOrElse "twitter"
@@ -441,11 +508,13 @@ object WordUsers extends optional.Application {
         case Some(b) if b => new TVisitorWordsByRole(
                                       lowerCase_,
                                       twitProgress_,
-                                      wordUserProgress)
+                                      wordUserProgress,
+                                      pruneCountOftenOpt)
         case _            => new TVisitorWordsTogether(
                                       lowerCase_,
                                       twitProgress_,
-                                      wordUserProgress)
+                                      wordUserProgress,
+                                      pruneCountOftenOpt)
         }       
     
     maxTwits match {
@@ -457,8 +526,21 @@ object WordUsers extends optional.Application {
         twitCorpus.visitAll(tv)
     }
     
-    err.println("the final stats of word/user-sets")
+    val gonnaPrune = pruneCount match {
+    	case Some(n) =>  " before pruning to under "+n+" count:"
+    	case _ => ""
+    	}
+    	
+    err.println("the final stats of word/user-sets"+gonnaPrune)
     err.println(tv)
+    
+    pruneCount match { 
+    	case Some(minCount) if (pruneOften.isEmpty) =>
+    		tv.prune(minCount,showPrune_)(tv.twitCount)
+			err.println("the final stats of word/user-sets after pruning:")
+			err.println(tv)
+		case _ =>
+    }
     
     wordFile match {
 		case Some(prefix) => tv.writeWordDayPeopleSizes(prefix, dumpProgress_)
