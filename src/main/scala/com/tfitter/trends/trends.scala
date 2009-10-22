@@ -204,18 +204,6 @@ case class WordPeople(name: String) {
         if (t.isInit)  info.nInits   += 1 // may be several per reply!      
   }
   
-  def prune(minCount: Int, progress: Boolean)(twitCount: Long): Unit = {
-  	var prunedCount = 0
-  	words foreach { case (word,info) =>
-  		if (info.userDays.size < minCount) { 
-  			words.removeKey(word) // TODO remove in 2.8
-  			prunedCount += 1
-  		}
-  		if (progress) err.println(name+" "+prunedCount+" words pruned at "+
-  			twitCount+" twits")
-  	}
-  }
-  
   def sizeHistogram: Histogram[Int] = {
   	val h = new Histogram[Int]()
   	words foreach { case (word,info) =>
@@ -251,6 +239,19 @@ case class WordPeople(name: String) {
   
   override def toString =
     name+":WordPeople: has "+nWords+" words, "+nUsers+" people, "+nWordUsers+" total pairs"
+
+  
+  def prune(minCount: Int, progress: Boolean)(twitCount: Long): Unit = {
+  	var prunedCount = 0
+  	words foreach { case (word,info) =>
+  		if (info.userDays.size < minCount) { 
+  			words.removeKey(word) // TODO remove in 2.8
+  			prunedCount += 1
+  		}
+  	}
+	if (progress) err.println(name+" "+prunedCount+" words pruned at "+
+		twitCount+" twits")
+  }
 }
 
 
