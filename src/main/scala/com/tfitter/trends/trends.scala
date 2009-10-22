@@ -461,7 +461,12 @@ object WordUsers extends optional.Application {
     	if (given.isEmpty) pool
     	else given
 
-	val showPrune_ = showPrune.get
+	// TODO add to my util:
+	val showPrune_ = showPrune match {
+		case Some(bool) if (bool) => true
+		case _ => false
+		}
+		
 	val twitProgress_ = givenOrPooled(twitProgress, poolProgress)    
 
     val wordUserProgress = WordUserProgress(
