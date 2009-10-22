@@ -124,7 +124,7 @@ case class WordInfo (
 }
 
 
-class Histogram[T] {
+class Histogram[T <% Ordered[T]] {
 	val h: Map[T,Int] = Map()
 	
 	def inc(t: T): Unit = {
@@ -135,7 +135,7 @@ class Histogram[T] {
 	}
 	
 	def toList: List[(T,Int)] = {
-		h.toList sort { _._2 > _._2 }
+		h.toList sort { case (a,b) => a._2 > b._2 || (a._2 == b._2 && a._1 > b._1) }
 	}
 	
 	override def toString: String = {
@@ -287,7 +287,7 @@ case class WordRole(name: String) {
   	name+" word size histogram: "+
   	// NB was interspersing one character per line:
   	// (all map { _.sizeHistogram }) mkString "\n"
-  	all.map(_.sizeHistogram).mkString("\n")
+  	(all.map { case role => role.name+" "+role.sizeHistogram }).mkString("\n")
   }
 }
 
