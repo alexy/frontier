@@ -243,6 +243,7 @@ case class WordPeople(name: String) {
   
   def prune(minCount: Int, progress: Boolean)(twitCount: Long): Unit = {
   	var prunedCount = 0
+  	val wordsSize = words.size
   	words foreach { case (word,info) =>
   		if (info.userDays.size < minCount) { 
   			words.removeKey(word) // TODO remove in 2.8
@@ -250,7 +251,7 @@ case class WordPeople(name: String) {
   		}
   	}
 	if (progress) err.println(name+" "+prunedCount+" words pruned at "+
-		twitCount+" twits")
+		twitCount+" twits, bringing words size from "+wordsSize+" to "+words.size)
   }
 }
 
@@ -537,7 +538,7 @@ object WordUsers extends optional.Application {
     	case _ => ""
     	}
     	
-    err.println("the final stats of word/user-sets"+gonnaPrune)
+    err.println("\nthe final stats of word/user-sets"+gonnaPrune)
     err.println(tv)
     
     pruneCount match { 
