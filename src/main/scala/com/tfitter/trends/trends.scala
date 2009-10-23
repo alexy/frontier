@@ -522,7 +522,9 @@ object WordUsers extends optional.Application {
                                       twitProgress_,
                                       wordUserProgress,
                                       pruneCountOftenOpt)
-        }       
+        }    
+        
+    err.println("the twit visitor has "+tv.everySoOften+" periodic actions:"+tv.everySoOften)
     
     maxTwits match {
       case Some(atMost) =>
