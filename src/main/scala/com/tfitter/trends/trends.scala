@@ -445,7 +445,7 @@ object WordUsers extends optional.Application {
     
 	pruneCount: Option[Int],
 	pruneOften: Option[Long],
-	showPrune: Option[Boolean],
+	showPrune:  Option[Boolean],
 	
     poolProgress: Option[Long],
     twitProgress: Option[Long],    
@@ -482,8 +482,11 @@ object WordUsers extends optional.Application {
 
     val lowerCase_   = lowerCase getOrElse false
     
+    // val pruneOften=Some(50000)
+    err.println("pruneOften="+pruneOften)
     val pruneCountOftenOpt = pruneOften match {
-    	case Some(often) => 
+    	case Some(often) =>
+    		err.println(" pruneCountOftenOpt is Some!")
     		Some(CountOften(often,
     			pruneCount match {
     				case Some(count) => count
