@@ -524,7 +524,7 @@ object WordUsers extends optional.Application {
                                       pruneCountOftenOpt)
         }    
         
-    err.println("the twit visitor has "+tv.everySoOften+" periodic actions:"+tv.everySoOften)
+    err.println("the twit visitor has "+tv.everySoOften.size+" periodic actions:"+tv.everySoOften)
     
     maxTwits match {
       case Some(atMost) =>

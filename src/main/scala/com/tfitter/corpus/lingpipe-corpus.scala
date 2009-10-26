@@ -4,7 +4,7 @@ import com.aliasi.tokenizer._
 import java.util.regex.Pattern
 import com.aliasi.util.ScoredObject
 import System.err
-import com.aliasi.corpus.{TextHandler,Corpus}
+
 // braver placed TokenNGramFiles in com.alias.lm from demo
 import com.aliasi.lm.{TokenizedLM,TokenNGramFiles}
 
@@ -220,7 +220,7 @@ object TopNGrams extends optional.Application {
       case _ => None
     }
 
-    val bdbEnvPath   = envName getOrElse "bdb"
+    val bdbEnvPath   = envName   getOrElse "bdb"
     val bdbStoreName = storeName getOrElse "twitter"
     
     Info.group('G_twitwalk,List('twitwalk,'gottwits,'maxtwits))
