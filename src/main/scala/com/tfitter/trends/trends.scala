@@ -265,7 +265,8 @@ case class WordPeople(name: String) {
   // NB can compute both nUsers and nWordUsers in one fell fold
   def resetWordUsersSize: Long = {
     // TODO may explicitly parameterize with case (k,v) for clarity:
-    nWordUsers = words.foldLeft(0)(_+_._2.userDays.foldLeft(0)(_+_._2.cardinality))
+    // nWordUserDays = words.foldLeft(0)(_+_._2.userDays.foldLeft(0)(_+_._2.cardinality))
+    nWordUsers = words.foldLeft(0)(_+_._2.userDays.size)
     nWordUsers
   }
   
