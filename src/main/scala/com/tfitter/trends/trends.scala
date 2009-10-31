@@ -245,25 +245,25 @@ case class WordPeople(name: String) {
   	err.println("done")
   }
   
-  def userSet: Users = {
+  def resetUsers: Users = {
     // TODO may explicitly parameterize with case (k,v) for clarity:
     users = words.foldLeft(Set.empty: Users)(_++_._2.userDays.keySet)
     users
   }
   
-  def setWordsSize: Long = {
+  def resetWordsSize: Long = {
     nWords = words.size
     nWords
   }
   
-  def setUsersSize: Long = {
-    userSet
+  def resetUsersSize: Long = {
+    resetUsers
     nUsers = users.size
-    users.size
+    nUsers
   }
   
   // NB can compute both nUsers and nWordUsers in one fell fold
-  def setWordUsersSize: Long = {
+  def resetWordUsersSize: Long = {
     // TODO may explicitly parameterize with case (k,v) for clarity:
     nWordUsers = words.foldLeft(0)(_+_._2.userDays.foldLeft(0)(_+_._2.cardinality))
     nWordUsers
@@ -283,9 +283,9 @@ case class WordPeople(name: String) {
   			prunedCount += 1
   		}
   	}
-  	setWordsSize
-    setUsersSize
-    setWordUsersSize
+  	resetWordsSize
+    resetUsersSize
+    resetWordUsersSize
   	if (progress) err.println(name+" "+prunedCount+" words pruned at "+
   		twitCount+" twits, bringing words size from "+wordsSize+" to "+words.size+
   		"\n before: nWords="+nWords_ +" nUsers="+nUsers_ +" nWordUsers="+nWordUsers_ +
@@ -483,7 +483,9 @@ object WordUsers extends optional.Application {
     // then get Either a pair or one (final) pruning mincount
     
 	pruneCount: Option[Int],
-	pruneOften: Option[Long],
+	// pruneOften: Option[Long],
+	// TODO pruneOften is not respected on Rocket!
+	pruneEvery: Option[Long],
 	showPrune:  Option[Boolean],
 	
     poolProgress: Option[Long],
@@ -497,6 +499,8 @@ object WordUsers extends optional.Application {
 
     wordFile: Option[String],  
     args: Array[String]) = {
+      
+    val pruneOften = pruneEvery
     
     def givenOrPooled(given: Option[Long], pool: Option[Long]): Option[Long] = 
     	if (given.isEmpty) pool
