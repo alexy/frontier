@@ -8,10 +8,11 @@ import org.suffix.util.bdb.{BdbFlags, BdbArgs}
 import com.tfitter.db.Twit
 import System.err
 
-case class PosCount {
+case class PosCount(
+  twit:  TwitID,
 	pos:   Int,
 	count: Int
-}
+)
 
 object types {
 	type WordPosCount = Map[String, PosCount] 
@@ -20,7 +21,7 @@ object types {
 class WordHash {
 	vol words: WordPosCount = Map()
 	
-	def addT(w: String, pos: Int) = {
+	def addToken(w: String, pos: Int) = {
 		words.get(w) match {
 			case Some(PosCount(pos,count) => words(w) = PosCount(pos,count+1)
 			case _ => words(w) = PosCount(pos,1)

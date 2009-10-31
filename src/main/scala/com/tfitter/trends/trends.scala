@@ -55,6 +55,9 @@ class DaySet(val startBits: Int) {
         }
         aux(0,List())
     }
+    
+    // the number of the set bits, i.e. of the elements in the set
+    def cardinality: Int = bits.cardinality
 }
 
 
@@ -148,10 +151,15 @@ class Histogram[T <% Ordered[T]] {
 // NB could make WordUserProgress constructor argument
 case class WordPeople(name: String) {
   val words: WordTabs = Map.empty
-  val users: Users = Set.empty
-  var nWords = 0 // == words.size
-  var nUsers = 0 // == users.size
-  var nWordUsers = 0
+
+  // cache results of users() call
+  var users: Users = Set.empty
+  
+  var nWords: Long = 0
+  var nUsers: Long = 0
+  var nWordUsers: Long = 0
+  
+  def size: Long = words.size // == nWords
 
   // this is called when w
   def addWordUser(info: WordInfo, user: UserID, progress: WordUserProgress) = {
@@ -237,6 +245,30 @@ case class WordPeople(name: String) {
   	err.println("done")
   }
   
+  def userSet: Users = {
+    // TODO may explicitly parameterize with case (k,v) for clarity:
+    users = words.foldLeft(Set.empty: Users)(_++_._2.userDays.keySet)
+    users
+  }
+  
+  def setWordsSize: Long = {
+    nWords = words.size
+    nWords
+  }
+  
+  def setUsersSize: Long = {
+    userSet
+    nUsers = users.size
+    users.size
+  }
+  
+  // NB can compute both nUsers and nWordUsers in one fell fold
+  def setWordUsersSize: Long = {
+    // TODO may explicitly parameterize with case (k,v) for clarity:
+    nWordUsers = words.foldLeft(0)(_+_._2.userDays.foldLeft(0)(_+_._2.cardinality))
+    nWordUsers
+  }
+  
   override def toString =
     name+":WordPeople: has "+nWords+" words, "+nUsers+" people, "+nWordUsers+" total pairs"
 
@@ -244,14 +276,20 @@ case class WordPeople(name: String) {
   def prune(minCount: Int, progress: Boolean)(twitCount: Long): Unit = {
   	var prunedCount = 0
   	val wordsSize = words.size
+  	val (nWords_,nUsers_,nWordUsers_) = (nWords,nUsers,nWordUsers)
   	words foreach { case (word,info) =>
   		if (info.userDays.size < minCount) { 
   			words.removeKey(word) // TODO remove in 2.8
   			prunedCount += 1
   		}
   	}
-	if (progress) err.println(name+" "+prunedCount+" words pruned at "+
-		twitCount+" twits, bringing words size from "+wordsSize+" to "+words.size)
+  	setWordsSize
+    setUsersSize
+    setWordUsersSize
+  	if (progress) err.println(name+" "+prunedCount+" words pruned at "+
+  		twitCount+" twits, bringing words size from "+wordsSize+" to "+words.size+
+  		"\n before: nWords="+nWords_ +" nUsers="+nUsers_ +" nWordUsers="+nWordUsers_ +
+  		"\n after:  nWords="+nWords  +" nUsers="+nUsers  +" nWordUsers="+nWordUsers)
   }
 }
 
@@ -297,6 +335,7 @@ case class WordRole(name: String) {
   def prune(minCount: Int, progress: Boolean)(twitCount: Long) = {
   	all foreach { words =>
   		words.prune(minCount, progress)(twitCount)
+  		// err.println("DEBUG pruned "+words.name+" down to size:"+words.size)
   	}
   }
 }
@@ -565,3 +604,6 @@ object WordUsers extends optional.Application {
     }
   }
 }
+
+// typical command line invocation:
+
