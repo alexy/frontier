@@ -15,7 +15,7 @@ case class TwitTokenNone() extends TwitToken
 //}
 
 class TwitTokens(val s: String) extends Iterator[TwitToken] {
-	val length = s.length
+	override val length = s.length
 	var i = 0
 	var isUrl = false
 	val sb = new StringBuilder // default size 16

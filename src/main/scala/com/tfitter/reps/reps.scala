@@ -2,7 +2,7 @@ package com.tfitter.db.graph
 
 import System.err
 
-import types._
+import com.tfitter.db.graph.types._
 import com.tfitter.db.types._
 
 import scala.util.Sorting.stableSort
@@ -180,7 +180,7 @@ class Communities(getReps: UserID => Option[RepCount]) {
       val u2reps: RepCount = getReps(u2) getOrElse    { return ((deQueue,haveSet,community),true) }
       // println(u2reps)
     
-      val u1a = u1reps.toList.sort(_._2._1 > _._2._1)
+      val u1a = u1reps.toList.sortWith(_._2._1 > _._2._1)
       val u2a = u2reps.toArray
       stableSort(u2a,firstGreater _)
     
@@ -212,7 +212,7 @@ class Communities(getReps: UserID => Option[RepCount]) {
       val u1reps: RepCount = getReps(u1) getOrElse    { return ((deQueue,haveSet,community),true) }
       val u2reps: RepCount = getReps(u2) getOrElse    { return ((deQueue,haveSet,community),true) }
     
-      val u1a = u1reps.toList.sort(_._2._1 > _._2._1)
+      val u1a = u1reps.toList.sortWith(_._2._1 > _._2._1)
       val u2a = u2reps.toArray
       stableSort(u2a,firstGreater _)
     

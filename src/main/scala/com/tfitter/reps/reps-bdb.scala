@@ -8,7 +8,7 @@ import com.tfitter.Serialized.loadRepliers
 
 import org.suffix.util.bdb.{BdbArgs,BdbFlags,BdbStore}
 
-import sleepycat.persist.model._
+import com.sleepycat.persist.model._
 import com.sleepycat.persist.model.Relationship.MANY_TO_ONE
 
 import scala.collection.mutable.{Map=>UMap}
@@ -79,7 +79,7 @@ class UserRepsBDB {
     s = _s
     t = new JHMap
     u = new JHMap
-    rc.foreach { case (x, (y, z)) => t.put(x,y); u.put(x,z) }    
+    rc foreach { case (x, (y, z)) => t.put(x,y); u.put(x,z) }    
   }
   def toUserReps: UserReps = {
     val sid = s.intValue
@@ -126,7 +126,7 @@ class RepliersBDB(bdbArgs: BdbArgs) extends BdbStore(bdbArgs) with RepsBDB {
   
   def loadMap(showProgress: Boolean): ReplierMap = { 
     val curIter = new CursorIterator(rpPrimaryIndex.entities)
-    var reps: FixedRepliers = Map.empty
+    var reps: ReplierMap = UMap()
 
     var edgeCount = 0
     for (ej <- curIter) {
@@ -136,12 +136,12 @@ class RepliersBDB(bdbArgs: BdbArgs) extends BdbStore(bdbArgs) with RepsBDB {
       // hence FixedRepliers -- and immutable at that!
       // alas, we have to cast back to mutable ReplierMap
       // to fit the trait RepsBDB which also fits RepMaps
-      else reps(e.s) = Map(e.t -> (e.reps,e.dirs))
+      else reps(e.s) = UMap(e.t -> (e.reps,e.dirs))
       edgeCount += 1
       if (showProgress && edgeCount % 100000 == 0) err.print('.')
     }
     err.println
-    reps.asInstanceOf[ReplierMap]
+    reps
   }
   
   def getReps(u: UserID): Option[RepCount] = {

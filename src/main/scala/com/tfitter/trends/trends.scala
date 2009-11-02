@@ -137,9 +137,15 @@ class Histogram[T <% Ordered[T]] {
 			case _ => h(t) = 1
 		}
 	}
-	
+
+  type TInt = (T, Int)
+  
 	def toList: List[(T,Int)] = {
-		h.toList sort { case (a,b) => a._2 > b._2 || (a._2 == b._2 && a._1 > b._1) }
+    // TODO sort via array?
+    // 2.7 had case (a,b), in 2.8 it complained about
+    // missing parameter type for expanded function.
+    // removing case made it compile:
+		h.toList sortWith { (a, b) => a._2 > b._2 || (a._2 == b._2 && a._1 > b._1) }
 	}
 	
 	override def toString: String = {
@@ -247,7 +253,7 @@ case class WordPeople(name: String) {
   
   def resetUsers: Users = {
     // TODO may explicitly parameterize with case (k,v) for clarity:
-    users = words.foldLeft(Set.empty: Users)(_++_._2.userDays.keySet)
+    users = words.foldLeft(Set.empty: Users)(_++=_._2.userDays.keySet) // TODO ++ OK in 2.7
     users
   }
   
@@ -280,7 +286,7 @@ case class WordPeople(name: String) {
   	val (nWords_,nUsers_,nWordUsers_) = (nWords,nUsers,nWordUsers)
   	words foreach { case (word,info) =>
   		if (info.userDays.size < minCount) { 
-  			words.removeKey(word) // TODO remove in 2.8
+  			words.remove(word) // removeKey in 2.8
   			prunedCount += 1
   		}
   	}
@@ -295,7 +301,7 @@ case class WordPeople(name: String) {
 }
 
 
-case class WordRole(name: String) {
+class WordRole(name: String) {
   val words = WordPeople(name+"-words")
   val users = WordPeople(name+"-users")
   val tags  = WordPeople(name+"-tags")

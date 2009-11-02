@@ -16,8 +16,8 @@ import org.suffix.util.Info.info
 
 import java.io.File
 
-// java.util.SortedSet.toList
-import scala.collection.jcl.Conversions._
+// java.util.SortedSet
+import scala.collection.JavaConversions.JSetWrapper
 
 
 case class NGramCount (
@@ -97,7 +97,7 @@ class RichTokenizedLM(tokenizerFactory: TokenizerFactory, nGram: Int)
   def showTopNGrams(nGramCount: NGramCount): Unit = {
     val NGramCount(topGram,topCount) = nGramCount
 
-    val freqTerms: List[ScoredObject[Array[String]]] = frequentTermSet(topGram, topCount).toList
+    val freqTerms = JSetWrapper(frequentTermSet(topGram, topCount))
 
     for (so <- freqTerms) {
       println(so.score+": "+so.getObject.toList.mkString(","))
@@ -228,7 +228,7 @@ object TopNGrams extends optional.Application {
     val showOn = (debugOn match {
       case Some(s) => Info.symbols(s)
       case _ => List('maxtwits,'gottwits,'dumpngrams,'prune,'twitwalk)  //'
-    }) remove (showNot contains _)
+    }) filterNot (showNot contains _)   // 2.7 remove --> filterNot 2.8
     
     showOn foreach Info.set
     info('info)("# showing output for symbols:"+showOn) //'
