@@ -1,11 +1,11 @@
-package com.tfitter.influence
+package com.tfitter.twitwalk
 
 import com.tfitter.corpus.{TwitterCorpus,TVisitor,ActOften}
 import org.suffix.util.bdb.{BdbFlags, BdbArgs}
 import com.tfitter.db.Twit
 import System.err
 
-class InfluIndex(val twitProgress: Option[Long]) extends TVisitor {
+class TVisitorTemplate(val twitProgress: Option[Long]) extends TVisitor {
 
 	var twitCount: Long = 0
 	var everySoOften: List[ActOften] = List()
@@ -20,7 +20,7 @@ class InfluIndex(val twitProgress: Option[Long]) extends TVisitor {
 }
 
 
-object Influence extends optional.Application {
+object TwitWalk extends optional.Application {
 
   def main(
     envName: Option[String],
@@ -59,7 +59,7 @@ object Influence extends optional.Application {
 
     val twitCorpus = new TwitterCorpus(bdbArgs)
           
-	val tv = new InfluIndex(twitProgress)
+	val tv = new TVisitorTemplate(twitProgress)
         
     err.println("the twit visitor has "+tv.everySoOften.size+" periodic actions:"+tv.everySoOften)
     
