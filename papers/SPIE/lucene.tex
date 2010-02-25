@@ -1,0 +1,19 @@
+\section{Lucene}
+Lucene is a powerful open-source search engine which uses flat-file inverted indices to provide fast full-text indexing and searching.  The fundamental unit in Lucene is a document, which can have any number of field, each with a number of indexing parameters.\\
+We created a custom analyzer for Lucene allowing us to preserve the meaningful special characters that appear in Tweets.  The indexer tokenizes the text on characters which are neither letters, numbers or the @ or \# symbols and creates a full-text search index on those tokens.  We also store meta-data for each tweet, including date the tweet was posted to the twitter stream, if the tweet contains a hashtag, if the tweet is directed and who it was directed to..\\
+We created two Lucene indices on a month's worth of tweets from the Twitter Gardenhose stream.  The first index was created with each tweet as a document.  A second index was then created on each user's corpora as a document.  Using these two indices we created a number of API functions to perform textual analysis on the Twitter data.\\
+\subsection{Full Index API Functions}
+In order to ensure that we would receive meaningful results from the analysis of the twitter data we created a custom stop word list generator which would generate a stopword list based on the whole corpora of words used in tweets.  Taking this stop word list and pruning out some entries by hand that were clearly meaningful we created a number of functions which performed textual analysis on the dataset.
+\newcounter{Lcount}
+\begin{list}{\arabic{Lcount}.}
+{\usecounter{Lcount}
+\setlength{\rightmargin}{\leftmargin}}
+\item topChatters - gets the users with the most conversation messages
+\item twitUserIds - gets all the users and twits for a term
+\item topWordsByTwit - gets the top words in the combined corpora of the list of tweets
+\item topWordsByUser - gets the top words in the combined corpora of the list of users
+\item userPairTopics - gets the top words for pairs of users
+\item getStopList - creates a stoplist from the most commonly used words in the corpora of all tweets
+\subsection{User Corpora Index API Functions}
+In addition to the API functions which interact with the full index on a per tweet basis we created API functions which operate on the per user corpora index.  These functions primarily use queries with very large numbers of terms to perform cosine similarity analysis on the corpora of a user or a group of users against another user or group of users.  Through this procedure we are able to compare a candidate to join a group to the corpora of the group as a whole in order to rank users who are considered to be on the fringe of a community for inclusion into the community.
+\end{list}
