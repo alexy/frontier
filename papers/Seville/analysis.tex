@@ -1,0 +1,4 @@
+\section{Analysis Procedure}
+Given a search term, we can find either weak pairs: all the pairs of users who talk to each other and additionally each also use the search terms; or strong pairs: all the pairs of users who each individually use the search terms with at least one message between the two users containing the search term.\\
+Having gathered this list of user pairs we then grow communities around each user pair.  A user is a member of a community if they have been sent messages by two of the users of the community. Users are added recursively until there are no more users to add.  Any users which have been sent messages by just one of the members of the community is considered to be the ``fringe'' of the community.\\
+Finally we perform SIP and collocation analysis on these communities to find the resulting topics of conversation in the communities.\\

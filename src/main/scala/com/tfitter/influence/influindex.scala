@@ -12,7 +12,7 @@ import com.tfitter.db.types._
 
 object RT {
   val prefix = Set("rt","via")
-  def isRT(word: String): Boolean = {
+  def is(word: String): Boolean = {
     val wordLower = word.toLowerCase
     prefix contains wordLower
   }
@@ -77,7 +77,7 @@ class InfluIndex(val twitProgress: Option[Long]) extends TVisitor {
 
 		for (token <- tzer) {
       token match {
-        case TwitTokenWord(w) => isRT = RT.isRT(w)
+        case TwitTokenWord(w) => isRT = RT.is(w)
         case TwitTokenUser(u) if (isRT) => retwiters.add(u, t.uid)
         case _ =>
       }
