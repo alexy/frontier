@@ -1,0 +1,11 @@
+\subsection{Topics}
+
+For the communities we identify, we look at the typical topics discussed.  One way to find the topics is to look at the top n-grams used in the text of the messages exchanged.  These will often be trivial and shared across many communities, e.g. bigrams such as “I need...”  A more interesting source for characteristic topics are the Statistically Improbable Phrases, or SIPs.  They are widely used on Amazon.com to characterize a book.  The SIPs are found by looking at n-grams and comparing their actual frequency to the case where the words would happen to be together randomly.  Those n-grams where such repeated cooccurrence is very unlikely for random words are thus “improbable” randomness, i.e. regularity.  Some of the Glenn Beck community SIPs follow:
+
+ 
+NB Glenn Beck SIPs
+
+
+\section{Applications}
+
+Our method is a convenient way to browse through a social network.  The Twitter data stream contains millions of messages from millions of users daily.  It’s hard to even begin to explore such a collection.  Given the topical community search, we have both an entry point and a pivoting procedure.  Hence, after a community is seeded, grown, and its topics are revealed via SIPs, the explorer can either stop there and look at the users of interest, or detect the fringe and pick a topic from its SIPs or a pair with one member in the community at hand and another a fringe member.  That pair, or a fringe SIP can be used to seed a new community for the next step of browsing, which we call pivoting.

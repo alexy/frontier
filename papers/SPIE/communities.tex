@@ -1,0 +1,27 @@
+\section{Community Detection}
+
+\subsection{The Communication Graph}
+
+Many previous and current popularity metrics for Twitter focus on the followers graph.  Indeed, twitterers create a datastream, similar to RSS news, by subscribing to -- or following -- other twitterers.  However, as pointed out by Finin et al. \cite{Finin2007}, the number of followers doesn’t necessarily predict influence or social bonds.  What matters are actions -- and in case of Twitter, direct communications, called replies.
+
+Anybody can address anybody else publicly, by simply inserting the addressee’s nickname, preceded with @, into the twit (then called reply).  We can extract replies from all twits and build a communication graph out of them.  Such a graph can be static, being a snapshot at a certain time, or dynamic, where nodes and edges are added with timestamps, constituting a multigraph.  When looking for communities, we propose to do so through the communication graph, revealing those engaged with each other, presumably over a set of topics.
+
+NB workflow diagram
+
+Our workflow begins with a search phrase, such as “Glenn Beck.”  We then identify pairs of repliers from the communication multigraph who exchange this phrase in both directions, and sort the pairs by the number of total exchanges they had.  The top pair would be the most active, and becomes our seed candidate for the community.  We grow the community from that seed pair as follows.
+
+\subsection{Growing a Community}
+
+Our community identification algorithms is inspired by \cite{Backstrom06}, who made the following observation when studying the dynamics of the community growth.  A new member is much likelier to join a community when he has two friends already in the community, not yet connected themselves (a triad).  We simplify it by not insisting the two friends have no links, but requiring that a prospective member has at least two friends already in the community.
+
+Hence, the algorithm proceeds as follows.  We start (*) with a pair, (A,B), in a queue, who are the seed members of the community.  They may or may not have a link -- e.g., in one version, we actually find such pairs which exchanged messages with a topic, such as ``Glenn Beck,'' in them.  (An option may further control whether there should be messages in each direction, signifying mutual interest, i.e. at least two, or one will suffice.)  After that, we sort friends of A in the decreasing order of the total number of messages exchanged, and the same with B, and then find the first shared friend in the list, C.  C is then added to the community, and add the pairs (A,C), (B,C) to the queue.  The process (*) is then repeated until the queue is exhausted.
+
+There are certain asymmetries in some versions of this algorithm where only one direction of the edges are required.  If we allow for a single directed edge as a (topical) relationship marker, we will get different communities when starting with the pair (A,B) rather than (B,A).  Such differences can be considered as a result of the bias towards A or B, or compensated for by requiring edges in both directions.  Here we ensure symmetry by requiring both edges.
+
+In our studies with several seeding topics, the communities peter out fairly quickly, conforming to the idea of a tightly knit cluster \cite{Tarjan08} being characteristic for a community.
+
+NB picture of a triangular community
+
+\subsection{Fringe}
+
+The fringe of a community is a set of users connected, in the communication graph, to at least one member of the community, but not themselves members of it.  Once the fringe is detected, its twit set can be examined for SIPs.  Those can provide a set of choices for further exploration, to restart the community building process.  We outline such a process as a basis of data exploration below.

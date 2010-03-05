@@ -1,8 +1,0 @@
-\section{Analysis Procedure}
-\subsection{Strong and Weak User Pairs}
-We began the analysis by searching the Lucene index for pairs of users who discuss a keyword.  We explored finding both weak and strong pairs of users.\\
-A weak user pair is a pair of users who at least once in their copora use the same keyword in at least one of their tweets and additionally have at least one directed message between them.  A strong pair of users has at least one directed message between them which uses the keyword being searched for.  For our analysis we used strong user pairs finding that they gave us results more like what we were attempting to find as a community.  Additionally, before generating communities based on these pairs we pruned them based on the number of times that the keyword appeared between users.\\
-\subsection{Growing Communities}
-We then used these user pairs as seeds for growing communities.  Using a recursive definition of community based on a triangle property that: a user is a member of a community if they have been sent messages by two of the users of the community.  If that is the case the user is added to the community connected to those two users. Users are added recursively until there are no more users to add.  Any users which have been sent messages by exactly one of the members of the community is considered to be the 'fringe' of the community.\\
-\subsection{SIP and Collocation}
-Finally we perform SIP and collocation analysis on these communities to find the resulting topics of conversation in the communities.  Your stuff goes here alexy.\\

@@ -1,0 +1,9 @@
+\subsection{Implementation}
+
+The Social Network Exploration platform is developed on the Java Virtual Machine technology.  We tap into fast and robust databases for storing the vast amounts of data coming daily -- the Berkeley DB (BDB) \cite{BDB}, an in-process persistent hash, and MongoDB \cite{MongoDB}, a JSON-based client/server with in-memory cache and excellent Java driver.  We used two modern JVM languages, Scala and Clojure, for efficient data mining.
+Scala is a modern object-functional language, allowing for compact and expressive code while fully interoperable with the Java platform.  We previously have successfully developed data mining software with the Functional Programming (FP) paradigm, and Scala allows to use FP smoothly with new code and existing libraries.
+
+
+\subsection{NLP}
+
+For the n-gram models and SIPs, we used the LingPipe \cite{LingPipe}, an NLP library written in Java.  It comes with very well written tutorials on various NLP tasks, built-in tokenizers, and serialization.  For text search, we use Lucene, the premier full text search engine originally and currently developed in Java.
