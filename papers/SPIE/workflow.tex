@@ -1,11 +1,23 @@
+\section{Workflow}
+
 \subsection{Strong and Weak User Pairs}
 
-The preprocessing of the social networks creates two fast searchable databases for content and structure:
+The preprocessing of the social networks creates two fast searchable databases for content and structure.  It consists of the following steps:
 
 \begin{enumerate}
+	\item obtain the stream of data from the social network
 	\item index the twits in a text search engine (Lucene)
 	\item build the communication graph (Berkeley DB)
 \end{enumerate}
+
+The preprocessing is illustrated in Figure~\ref{figure:preprocessing}.  Notice that the term ``preprocessing'' here does not preclude online operation -- the data stream can indexed continuously, and both Lucene and Berkeley DB allow for efficient real-time growth.
+
+\begin{figure}[htp]
+\includegraphics{figures/spie-preprocessing}
+\caption{Preprocessing social network data for exploration.  Message text is indexed in a full text search index, and the communication graph is stored in a fast associative map database.}
+\label{figure:preprocessing}
+\end{figure}
+
 
 Once those are built, the exploration workflow is as follows:
 
@@ -17,9 +29,13 @@ Once those are built, the exploration workflow is as follows:
 	\item the fringe of the community is identified, with the choices of pairs or topics for further iterations
 \end{enumerate}
 
-The workflow is shown in Figure~\ref{figure:workflow}.
+The exploration workflow is shown in Figure~\ref{figure:workflow}.  
 
-NB workflow
+\begin{figure}[htp]
+\includegraphics{figures/spie-workflow}
+\caption{Exploration workflow.  A keyword is searched and the pairs using it most are found.  Then a community is grown around such a pair, and its topics are extracted.  The fringe and its topics are also listed, allowing for subsequent pivoting and iteration, or end of browsing.}
+\label{figure:workflow}
+\end{figure}
 	
 \subsection{Finding Topics}
 
