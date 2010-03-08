@@ -6,7 +6,7 @@ The preprocessing of the social networks creates two fast searchable databases f
 
 \begin{enumerate}
 	\item obtain the stream of data from the social network
-	\item index the twits in a text search engine (Lucene)
+	\item index the tweets in a text search engine (Lucene)
 	\item build the communication graph (Berkeley DB)
 \end{enumerate}
 
@@ -39,7 +39,7 @@ The exploration workflow is shown in Figure~\ref{figure:workflow}.
 	
 \subsection{Finding Topics}
 
-We began the analysis by searching the Lucene index for pairs of users who discuss a keyword.  All of the twit contents are indexed.  Various twit fields are treated separately, allowing finding replies quickly.
+We began the analysis by searching the Lucene index for pairs of users who discuss a keyword.  All of the tweet contents are indexed.  Various tweet fields are treated separately, allowing finding replies quickly.
 
 \subsection{Finding Communications}
 

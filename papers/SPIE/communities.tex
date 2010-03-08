@@ -4,7 +4,7 @@
 
 Many previous and current popularity metrics for Twitter focus on the followers graph.  Indeed, twitterers create a datastream, similar to RSS news, by subscribing to -- or following -- other twitterers.  However, as pointed out by Finin et al. \cite{DBLP:conf/kdd/JavaSFT07}, the number of followers doesn’t necessarily predict influence or social bonds.  What matters are actions -- and in case of Twitter, direct communications, called replies.
 
-Anybody can address anybody else publicly, by simply inserting the addressee’s nickname, preceded with @, into the twit (then called reply).  We can extract replies from all twits and build a communication graph out of them.  Such a graph can be static, being a snapshot at a certain time, or dynamic, where nodes and edges are added with timestamps, constituting a multigraph.  When looking for communities, we propose to do so through the communication graph, revealing those engaged with each other, presumably over a set of topics.
+Anybody can address anybody else publicly, by simply inserting the addressee’s nickname, preceded with @, into the tweet (then called reply).  We can extract replies from all tweets and build a communication graph out of them.  Such a graph can be static, being a snapshot at a certain time, or dynamic, where nodes and edges are added with timestamps, constituting a multigraph.  When looking for communities, we propose to do so through the communication graph, revealing those engaged with each other, presumably over a set of topics.
 
 Our exploration workflow, outlined in Figure~\ref{figure:workflow}, begins with a search phrase, such as ``Glenn Beck.''  We then identify pairs of repliers from the communication multigraph who exchange this phrase in both directions, and sort the pairs by the number of total exchanges they had.  The top pair would be the most active, and becomes our seed candidate for the community.  We grow the community from that seed pair as follows.
 
@@ -20,4 +20,4 @@ In our studies with several seeding topics, the communities saturate fairly quic
 
 \subsection{Fringe}
 
-The fringe of a community is a set of users connected, in the communication graph, to at least one member of the community, but not themselves members of it.  Once the fringe is detected, its twit set can be examined for SIPs.  Those can provide a set of choices for further exploration, to restart the community building process.  We outline such a process as a basis of data exploration below.
+The fringe of a community is a set of users connected, in the communication graph, to at least one member of the community, but not themselves members of it.  Once the fringe is detected, its tweet set can be examined for SIPs.  Those can provide a set of choices for further exploration, to restart the community building process.  We outline such a process as a basis of data exploration below.
