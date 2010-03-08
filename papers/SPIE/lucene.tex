@@ -1,6 +1,6 @@
 \section{Text Indexing}
 
-For topical search, we index the twits and search them with Lucene \cite{Lucene}.
+For topical search, we index the twits and search them with Lucene \cite{code:lucene}.
 Lucene is a powerful open-source search engine which uses flat-file inverted indices to provide fast full-text indexing and searching.  The fundamental unit in Lucene is a document, which can have any number of field, each with a number of indexing parameters.
 
 We created a custom analyzer for Lucene allowing us to preserve the meaningful special characters that appear in Tweets.  The indexer tokenizes the text on characters which are neither letters, numbers or the @ or \# symbols and creates a full-text search index on those tokens.  We also store meta-data for each tweet, including date the tweet was posted to the twitter stream, if the tweet contains a hashtag, if the tweet is directed and who it was directed to.

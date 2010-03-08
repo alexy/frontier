@@ -1,9 +1,27 @@
 \subsection{Topics}
 
-For the communities we identify, we look at the typical topics discussed.  One way to find the topics is to look at the top n-grams used in the text of the messages exchanged.  These will often be trivial and shared across many communities, e.g. bigrams such as “I need...”  A more interesting source for characteristic topics are the Statistically Improbable Phrases, or SIPs.  They are widely used on Amazon.com to characterize a book.  The SIPs are found by looking at n-grams and comparing their actual frequency to the case where the words would happen to be together randomly.  Those n-grams where such repeated cooccurrence is very unlikely for random words are thus “improbable” randomness, i.e. regularity.  Some of the Glenn Beck community SIPs follow:
+For the communities we identify, we look at the typical topics discussed.  One way to find the topics is to look at the top \emph{n-grams} \cite{Ngram:Chen-Goodman} used in the text of the messages exchanged.  These will often be trivial and shared across many communities, e.g. bigrams such as ``I need...''  A more interesting source for characteristic topics are the Statistically Improbable Phrases, or SIPs.  They are widely used on Amazon.com to characterize a book.  The SIPs are found by looking at n-grams and comparing their actual frequency to the case where the words would happen to be together randomly.  Those n-grams where such repeated co-occurrence is very unlikely for random words are thus ``improbable'' randomness, i.e. regularity.  Some of the Glenn Beck community SIPs follow:
 
- 
-NB Glenn Beck SIPs
+\begin{table}
+	\centering
+\begin{tabular}{|c|c|}
+	\hline
+	Reining Medical Suits & Freedoms First Rally \\
+	\hline
+	Voting Rights Act & Martin Luther King \\
+	\hline
+	Gitmo Detainee Lawyer & Convo Gitmo Detainee \\
+	\hline
+	Able Bodied One & Payer Health Care \\
+	\hline
+	Speaking Your Truth & Town Hall Friday \\
+	\hline
+	Henry Louis Gates & Gov Mark Sanford \\
+	\hline 
+\end{tabular}
+\label{table:gb-sips}
+\caption{Statistically Improbable Phrases from the Glenn Beck community.  The phrases are trigrams which co-occur much more than random three words would.  They are the political issues and personalities of the day, circa Summer of 2009.}
+\end{table}
 
 
 \subsection{Applications}
