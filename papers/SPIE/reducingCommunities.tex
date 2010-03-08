@@ -1,0 +1,5 @@
+\section{Reducing Communities}
+Community graphs are build from a set of directed edges - E(from,to,weight) - where weight is the number of messages which traversed that edge in the data set.  Since the time sample was so long, there is an not insignificant number of edges with low weights.  These low weighted edges represent transient communications between users and more closely resemble noise than structural components of the communities.
+
+In order then, to create meaningful community structures, the set of edges E must be trimmed of edges with low weight which can introduce extraneous nodes into community structure which are not closely related.  For the data sets used for this paper, we chose a cutoff weight based on the obvious cut in the histogram of the weights on the graph.
+\end{section}
