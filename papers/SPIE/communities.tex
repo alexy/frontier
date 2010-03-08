@@ -21,3 +21,8 @@ In our studies with several seeding topics, the communities saturate fairly quic
 \subsection{Fringe}
 
 The fringe of a community is a set of users connected, in the communication graph, to at least one member of the community, but not themselves members of it.  Once the fringe is detected, its tweet set can be examined for SIPs.  Those can provide a set of choices for further exploration, to restart the community building process.  We outline such a process as a basis of data exploration below.
+
+\subsection{Pruning a Community}
+Community graphs are build from a set of directed edges - E(from,to,weight) - where weight is the number of messages which traversed that edge in the data set.  Since the time sample was so long, there is an not insignificant number of edges with low weights.  These low weighted edges represent transient communications between users and more closely resemble noise than structural components of the communities.
+
+In order then, to create meaningful community structures, the set of edges E must be trimmed of edges with low weight which can, if further analysis is performed harming the tightly knit clusters we hoped to find.  For the data sets used for this paper, we chose a cutoff weight based on the obvious cut in the histogram of the weights on the graph, usually a number of tweets between 1 and 5.
