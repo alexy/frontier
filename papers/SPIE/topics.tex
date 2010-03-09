@@ -1,8 +1,9 @@
 \subsection{Topics}
 
-For the communities we identify, we look at the typical topics discussed.  One way to find the topics is to look at the top \emph{n-grams} \cite{Ngram:Chen-Goodman} used in the text of the messages exchanged.  These will often be trivial and shared across many communities, e.g. bigrams such as ``I need...''  A more interesting source for characteristic topics are the Statistically Improbable Phrases, or SIPs.  They are widely used on Amazon.com to characterize a book.  The SIPs are found by looking at n-grams and comparing their actual frequency to the case where the words would happen to be together randomly.  Those n-grams where such repeated co-occurrence is very unlikely for random words are thus ``improbable'' randomness, i.e. regularity.  Some of the Glenn Beck community SIPs follow:
+For the communities we identify, we look at the typical topics discussed.  One way to find the topics is to look at the top \emph{n-grams} \cite{Ngram:Chen-Goodman} used in the text of the messages exchanged.  These will often be trivial and shared across many communities, e.g. bigrams such as ``I need...''  A more interesting source for characteristic topics are the Statistically Improbable Phrases, or SIPs.  They are widely used on Amazon.com to characterize a book.  The SIPs are found by looking at n-grams and comparing their actual frequency to the case where the words would happen to be together randomly.  Those n-grams where such repeated co-occurrence is very unlikely for random words are ``improbable'' in terms of randomness, i.e. they are uncovering some regularity.  Some of the Glenn Beck community SIPs are shown in Table~\ref{table:gb-sips}.
 
 \begin{table}
+\label{table:gb-sips}
 	\centering
 \begin{tabular}{|c|c|}
 	\hline
@@ -19,11 +20,12 @@ For the communities we identify, we look at the typical topics discussed.  One w
 	Henry Louis Gates & Gov Mark Sanford \\
 	\hline 
 \end{tabular}
-\label{table:gb-sips}
 \caption{Statistically Improbable Phrases from the Glenn Beck community.  The phrases are trigrams which co-occur much more than random three words would.  They are the political issues and personalities of the day, circa Summer of 2009.}
 \end{table}
 
 
 \subsection{Applications}
 
-Our method is a convenient way to browse through a social network.  The Twitter data stream contains millions of messages from millions of users daily.  It’s hard to even begin to explore such a collection.  Given the topical community search, we have both an entry point and a pivoting procedure.  Hence, after a community is seeded, grown, and its topics are revealed via SIPs, the explorer can either stop there and look at the users of interest, or detect the fringe and pick a topic from its SIPs or a pair with one member in the community at hand and another a fringe member.  That pair, or a fringe SIP can be used to seed a new community for the next step of browsing, which we call pivoting.
+Our method is a convenient way to browse through a social network.  The Twitter data stream receives millions of messages from millions of users daily.  It's hard to even begin to explore such a collection.  Given the topical community search, we have both an entry point and a pivoting procedure.  After a community is seeded, grown, and its topics are revealed via SIPs, the explorer can either stop there and look at the users of interest, or detect the fringe and pick a topic from its SIPs or a pair with one member in the community at hand and another a fringe member.  That pair, or a fringe SIP can be used to seed a new community for the next step of browsing, which we call pivoting.
+
+When keywords contain spatially or temporally localized topics, our workflow can be used for community sensing -- following the communities in a specific environment in the topical or geographical space.  For instance, the 2009 crisis in the New York State Senate can be tracked down using the name of a key Democratic senator, Pedro Espada Jr., who sided with the Republicans for a while, only to come back having extracted certain concessions -- and bringing the senate business to a halt in the mean time, causing much Twitter debate. Those users who mention his name are likely to follow the state politics; similar topics exist for engaging issues in every locale.
